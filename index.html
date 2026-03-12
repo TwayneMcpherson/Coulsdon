@@ -7,7 +7,7 @@
 <title>Coulsdon League Manager</title>
 
 <!-- QR Code Generator -->
-https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js
+https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js</script>
 
 <style>
 /* ============================================================
@@ -168,14 +168,14 @@ thead th{
   </div>
 </div>
 
-<!-- QR MODAL -->
+<!-- QR MODAL (used for both fixture QR and league-join QR) -->
 <div id="qrModal" class="modal-bg hidden">
   <div class="modal">
     <span id="closeQRModal" class="close-modal">X</span>
-    <h3>Fixture QR Code</h3>
+    <h3 id="qrModalTitle">QR Code</h3>
     <div id="qrFixtureInfo"></div>
     <div id="qrBox" style="width:200px;height:200px;margin:10px auto;"></div>
-    <button id="openFixtureLink" class="btn" style="width:100%;">Open Fixture Page</button>
+    <button id="openFixtureLink" class="btn" style="width:100%;">Open</button>
   </div>
 </div>
 
@@ -192,6 +192,8 @@ thead th{
         <button id="btnExportJSON" class="btn-ghost adminOnly hidden">Backup JSON</button>
         <label for="fileImportJSON" class="btn-ghost adminOnly hidden">Import</label>
         <input id="fileImportJSON" type="file" accept="application/json" class="hidden"/>
+        <!-- NEW: League-level QR (Join) -->
+        <button id="btnLeagueQR" class="btn-ghost">League QR (Join)</button>
       </div>
     </div>
 
@@ -222,6 +224,19 @@ thead th{
   <div id="sumMeta" class="muted">Select or create a league to begin.</div>
   <div id="viewerNotice" class="muted" style="margin-top:6px;">
     You are in Player View. Staff must enter Admin Mode to submit results.
+  </div>
+</div>
+
+<!-- NEW: League Join Panel (appears when ?league=<id>&join=1) -->
+<div id="joinPanel" class="card hidden">
+  <h2>Join This League</h2>
+  <p class="muted" id="joinLeagueName">—</p>
+  <div class="row" style="margin-top:8px;">
+    <input id="joinPlayerName" type="text" placeholder="Enter your name" style="flex:2;">
+    <button id="btnJoinLeague" class="btn" style="flex:1;">Join</button>
+  </div>
+  <div class="muted" style="margin-top:6px;">
+    Note: Results can only be entered by staff. This page only registers you in the league.
   </div>
 </div>
 
@@ -293,7 +308,7 @@ thead th{
       <button id="btnGenerateTT" class="btn adminOnly hidden" style="margin-top:8px;">Generate Fixtures</button>
       <button id="btnClearTT" class="btn-ghost adminOnly hidden" style="margin-left:6px;">Clear Fixtures</button>
 
-      <div id="ttFixturesWrap" class="hidden" style="margin-top:10px;">
+      <div id="ttFixturesWrap" class="hidden" style="margin-top:10px%;">
         <h3>Fixtures</h3>
         <table id="ttFixturesTable">
           <thead>
@@ -383,11 +398,11 @@ thead th{
 </div>
 
 <!-- ================================
-     JAVASCRIPT (PARTS 1–5 LOGIC)
+     JAVASCRIPT (ALL LOGIC)
      ================================ -->
 <script>
 /* --------------------------------------------------------------------------------------
-   PART 1 LOGIC: ADMIN MODE + QR MODAL
+   ADMIN MODE + QR MODAL
 -------------------------------------------------------------------------------------- */
 let ADMIN_PASSWORD = "StaffOnly-4429";
 let adminMode = false;
@@ -414,18 +429,22 @@ document.getElementById("adminModeBtn").onclick = function(){
 /* QR Modal */
 const qrModal = document.getElementById("qrModal");
 const qrBox = document.getElementById("qrBox");
+const qrTitle = document.getElementById("qrModalTitle");
+const qrInfo = document.getElementById("qrFixtureInfo");
+const qrOpenBtn = document.getElementById("openFixtureLink");
 
 document.getElementById("closeQRModal").onclick = ()=>{
   qrModal.classList.add("hidden");
   qrBox.innerHTML="";
 };
 
-/* The main QR Modal function */
+/* Fixture QR (existing) */
 function openQRModal(info){
   qrModal.classList.remove("hidden");
   qrBox.innerHTML="";
+  qrTitle.textContent = "Fixture QR Code";
 
-  document.getElementById("qrFixtureInfo").innerHTML=`
+  qrInfo.innerHTML=`
     <p><strong>League:</strong> ${info.leagueName}</p>
     <p><strong>Sport:</strong> ${info.sport}</p>
     <p><strong>Match:</strong> ${info.A} vs ${info.B}</p>
@@ -434,15 +453,33 @@ function openQRModal(info){
 
   const url = `${window.location.origin}${window.location.pathname}?league=${info.leagueId}&fixture=${info.id}`;
   new QRCode(qrBox,{text:url,width:200,height:200});
+  qrOpenBtn.textContent = "Open Fixture Page";
+  qrOpenBtn.onclick = ()=>window.location.href=url;
+}
 
-  document.getElementById("openFixtureLink").onclick = ()=>window.location.href=url;
+/* NEW: League-level QR (Join) */
+function openLeagueQRModal(L){
+  qrModal.classList.remove("hidden");
+  qrBox.innerHTML="";
+  qrTitle.textContent = "League QR (Join)";
+
+  const url = `${window.location.origin}${window.location.pathname}?league=${L.id}&join=1`;
+
+  qrInfo.innerHTML = `
+    <p><strong>League:</strong> ${L.name}</p>
+    <p><strong>Mode:</strong> Join this league</p>
+    <p class="muted">Students scan to open a join page and add their name to this league.</p>
+  `;
+
+  new QRCode(qrBox, { text: url, width: 200, height: 200 });
+
+  qrOpenBtn.textContent = "Open League Join Page";
+  qrOpenBtn.onclick = () => window.location.href = url;
 }
 
 /* --------------------------------------------------------------------------------------
-   PART 2 + PART 3 + PART 4 LOGIC MERGED
-   (League Engine, Fixtures, Results, Standings, Rendering, Deep-Link)
+   APP ENGINE: storage, leagues, fixtures, results, standings
 -------------------------------------------------------------------------------------- */
-
 const STORAGE_KEY="CoulsdonLeagueManager_v1";
 let app={ leagues:{}, current:null };
 
@@ -527,7 +564,7 @@ function generateRoundRobin(players,double=false){
       if(A&&B) group.push({home:A,away:B,round:r+1});
     }
     rounds.push(group);
-    const fixed=arr[0], rest=arr.slice(1);
+    const rest=arr.slice(1);
     rest.unshift(rest.pop());
     arr.splice(1,rest.length,...rest);
   }
@@ -559,11 +596,17 @@ function renderSummary(){
   const L=currentLeague();
   if(!L){
     document.getElementById("sumName").textContent="No league selected";
+    document.getElementById("sumSport").textContent="—";
+    document.getElementById("sumMeta").textContent="Select or create a league to begin.";
     return;
   }
   document.getElementById("sumName").textContent=L.name;
   document.getElementById("sumSport").textContent=L.sport;
   document.getElementById("sumMeta").textContent=`${L.players.length} players`;
+  // Show sport forms:
+  document.getElementById("poolForm").classList.toggle("hidden", L.sport!=="Pool");
+  document.getElementById("ttForm").classList.toggle("hidden", L.sport!=="TableTennis");
+  document.getElementById("fifaForm").classList.toggle("hidden", L.sport!=="FIFA");
 }
 
 function renderPlayers(){
@@ -887,7 +930,7 @@ document.getElementById("btnCreate").onclick = ()=>{
 };
 
 /* ---------------------------
-   EXPORT CSV
+   EXPORT CSV + PRINT + BACKUP
 ---------------------------- */
 document.getElementById("btnExportCSV").onclick = ()=>{
   const L=currentLeague(); if(!L) return;
@@ -905,9 +948,93 @@ document.getElementById("btnExportCSV").onclick = ()=>{
   a.click();
 };
 
-/* ---------------------------
-   BACKUP / IMPORT JSON
----------------------------- */
+document.getElementById("btnExportPrint").onclick = function(){
+  const L = currentLeague(); 
+  if(!L){ alert("No league selected."); return; }
+  recomputeStandings(L);
+
+  const newWin = window.open("", "_blank");
+  const rows = Object.entries(L.standings)
+    .sort((a,b)=>b[1].Pts - a[1].Pts || b[1].GD - a[1].GD)
+    .map(([name,s],i)=>`
+      <tr>
+        <td>${i+1}</td>
+        <td>${name}</td>
+        <td>${s.P}</td>
+        <td>${s.W}</td>
+        <td>${L.sport==='FIFA'? s.D : ''}</td>
+        <td>${s.L}</td>
+        <td>${L.sport==='Pool'?'':s.GF}</td>
+        <td>${L.sport==='Pool'?'':s.GA}</td>
+        <td>${L.sport==='Pool'?'':s.GD}</td>
+        <td><strong>${s.Pts}</strong></td>
+      </tr>
+    `).join("");
+
+  let tableHead = `
+    <tr>
+      <th>Pos</th><th>Player</th><th>P</th><th>W</th>
+      ${L.sport==='FIFA' ? '<th>D</th>' : '<th></th>'}
+      <th>L</th>
+      ${L.sport==='Pool' ? '<th></th><th></th><th></th>' : '<th>GF</th><th>GA</th><th>GD</th>'}
+      <th>Pts</th>
+    </tr>
+  `;
+
+  newWin.document.write(`
+    <html>
+      <head>
+        <title>${L.name} Standings</title>
+        <style>
+          body { font-family: Arial; padding: 20px; }
+          table { width: 100%; border-collapse: collapse; }
+          th, td { border: 1px solid #333; padding: 6px; text-align:center; }
+          h1 { margin-bottom: 10px; }
+        </style>
+      </head>
+      <body>
+        <h1>${L.name} — ${L.sport}</h1>
+        <p><em>Printed: ${new Date().toLocaleString()}</em></p>
+        <h2>Standings</h2>
+        <table>
+          <thead>${tableHead}</thead>
+          <tbody>${rows}</tbody>
+        </table>
+
+        <h2>Results Log</h2>
+        <table>
+          <thead>
+            <tr><th>#</th><th>Details</th><th>Points</th><th>Date</th></tr>
+          </thead>
+          <tbody>
+            ${
+              L.results.map((r,i)=>{
+                let d="",pts="";
+                if(r.sport==="Pool"){
+                  d=`${r.winner} beat ${r.loser} (${r.mode})`;
+                  pts = r.mode==="normal"? `${r.winner}+3` : `${r.winner}+2, ${r.loser}+1`;
+                }
+                else if(r.sport==="TableTennis"){
+                  d=`${r.home} ${r.homePts}–${r.awayPts} ${r.away}`;
+                  pts=`${(r.homePts>r.awayPts? r.home:r.away)}+3`;
+                }
+                else {
+                  d=`${r.A} ${r.goalsA}–${r.goalsB} ${r.B}`;
+                  pts = r.goalsA>r.goalsB? `${r.A}+3` : r.goalsB>r.goalsA? `${r.B}+3` : `${r.A}+1, ${r.B}+1`;
+                }
+                return `<tr><td>${i+1}</td><td>${d}</td><td>${pts}</td><td>${r.date}</td></tr>`;
+              }).join("")
+            }
+          </tbody>
+        </table>
+
+        <script>window.print();<\/script>
+      </body>
+    </html>
+  `);
+  newWin.document.close();
+};
+
 document.getElementById("btnExportJSON").onclick = ()=>{
   const blob=new Blob([JSON.stringify(app,null,2)],{type:"application/json"});
   const a=document.createElement("a");
@@ -931,7 +1058,7 @@ document.getElementById("fileImportJSON").onchange = (e)=>{
 };
 
 /* ---------------------------
-   RESULTS LOG
+   RESULTS LOG + STANDINGS
 ---------------------------- */
 function renderResultsLog(){
   const L=currentLeague(); if(!L) return;
@@ -962,9 +1089,6 @@ function renderResultsLog(){
   });
 }
 
-/* ---------------------------
-   STANDINGS TABLE
----------------------------- */
 function renderStandings(){
   const L=currentLeague(); if(!L) return;
   recomputeStandings(L);
@@ -991,7 +1115,7 @@ function renderStandings(){
 }
 
 /* ---------------------------
-   DEEP-LINK FIXTURE VIEW
+   FIXTURE DEEP LINK VIEW
 ---------------------------- */
 function loadFixturePageIfNeeded(){
   const params=new URLSearchParams(window.location.search);
@@ -1036,17 +1160,78 @@ function showFixtureViewer(L,f){
 }
 
 /* ---------------------------
-   ADMIN/PAYER MODE VISIBILITY
+   NEW: LEAGUE JOIN VIA QR
+---------------------------- */
+function showJoinPanel(L){
+  const panel = document.getElementById("joinPanel");
+  const label = document.getElementById("joinLeagueName");
+  panel.classList.remove("hidden");
+  label.textContent = `${L.name} — ${L.sport}`;
+}
+
+function addPlayerIfPossible(L, name){
+  const trimmed = (name||"").trim();
+  if(!trimmed){ alert("Please enter your name."); return false; }
+  if(L.players.includes(trimmed)){ alert("That name is already registered in this league."); return false; }
+  if(L.players.length >= 32){ alert("This league is full (32 players)."); return false; }
+  L.players.push(trimmed);
+  // Reset fixtures/results to avoid mismatches after roster change
+  L.fixtures = [];
+  L.results = [];
+  saveAll();
+  return true;
+}
+
+function checkJoinDeepLink(){
+  const params = new URLSearchParams(window.location.search);
+  const leagueId = params.get("league");
+  const joinFlag = params.get("join");
+  if(!leagueId || joinFlag!=="1") return;
+
+  const L = app.leagues[leagueId];
+  if(!L) return;
+
+  app.current = leagueId;
+  saveAll();
+  renderAll();
+
+  showJoinPanel(L);
+
+  const btn = document.getElementById("btnJoinLeague");
+  if(btn._wired) return;
+  btn._wired = true;
+
+  btn.onclick = ()=>{
+    const name = document.getElementById("joinPlayerName").value;
+    if(addPlayerIfPossible(L, name)){
+      alert("You have been added to the league. Thank you!");
+      document.getElementById("joinPlayerName").value = "";
+      renderAll();
+    }
+  };
+}
+
+/* Wire the toolbar "League QR (Join)" button */
+document.getElementById("btnLeagueQR").onclick = () => {
+  const L = currentLeague();
+  if(!L){ alert("Load or create a league first."); return; }
+  openLeagueQRModal(L);
+};
+
+/* ---------------------------
+   ADMIN/PLAYER MODE VISIBILITY
 ---------------------------- */
 function applyPlayerView(){
   if(!adminMode){
     document.querySelectorAll(".adminOnly").forEach(e=>e.classList.add("hidden"));
     document.querySelectorAll(".adminOnlyHeader").forEach(e=>e.style.display="none");
-    document.getElementById("viewerNotice").style.display="";
+    const vn = document.getElementById("viewerNotice");
+    if(vn) vn.style.display="";
   } else {
     document.querySelectorAll(".adminOnly").forEach(e=>e.classList.remove("hidden"));
     document.querySelectorAll(".adminOnlyHeader").forEach(e=>e.style.display="table-cell");
-    document.getElementById("viewerNotice").style.display="none";
+    const vn = document.getElementById("viewerNotice");
+    if(vn) vn.style.display="none";
   }
 }
 
@@ -1067,6 +1252,7 @@ function renderAll(){
 
 renderAll();
 loadFixturePageIfNeeded();
+checkJoinDeepLink();
 
 /* ---------------------------
    MOBILE RESPONSIVENESS
