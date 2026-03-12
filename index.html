@@ -6,9 +6,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Coulsdon League Manager</title>
 
-<!-- QR Code Generator -->
-https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js</script>
-
 <style>
 /* ============================================================
    COULSDON COLLEGE BRAND THEME
@@ -31,21 +28,10 @@ https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js</script>
   --highlight:#FFD166;
 }
 
-body{
-  margin:0;
-  padding:20px;
-  background:var(--bg);
-  color:var(--ink);
-  font-family:Segoe UI,Arial,sans-serif;
-}
+*{box-sizing:border-box;font-family:Segoe UI,Arial,sans-serif;}
+body{margin:0;padding:20px;background:var(--bg);color:var(--ink);}
+h1{color:var(--coulsdonRed);margin:0 0 12px;font-size:28px;font-weight:700;}
 
-h1{
-  color:var(--coulsdonRed);
-  margin-bottom:12px;
-  font-size:28px;
-}
-
-/* Layout + Cards */
 .card{
   background:var(--card);
   border:1px solid var(--line);
@@ -54,105 +40,37 @@ h1{
   box-shadow:0 2px 6px rgba(0,0,0,0.05);
   margin-bottom:18px;
 }
+.row{display:flex;gap:12px;flex-wrap:wrap;}
+.col{flex:1 1 350px;}
 
-.row{
-  display:flex;
-  flex-wrap:wrap;
-  gap:12px;
-}
-.col{ flex:1 1 350px; }
-
-/* Buttons */
 button{
   padding:8px 14px;
-  font-weight:600;
-  border-radius:6px;
-  cursor:pointer;
-  border:none;
+  border:none;border-radius:6px;
+  cursor:pointer;font-weight:600;
 }
+.btn{background:var(--accent);color:#fff;}
+.btn:hover{opacity:.9;}
+.btn-ghost{background:#fff;color:var(--accent);border:1px solid var(--accent);}
+.btn-ghost:hover{background:var(--accent);color:#fff;}
+.btn-admin{background:var(--admin);color:#fff;}
+.btn-danger{background:var(--danger);color:#fff;}
 
-.btn{
-  background:var(--accent);
-  color:#fff;
-}
-.btn:hover{ opacity:0.85; }
+table{width:100%;border-collapse:collapse;margin-top:10px;background:#fff;}
+th,td{border-bottom:1px solid var(--line);padding:8px;text-align:center;}
+thead th{background:var(--coulsdonRed);color:#fff;}
 
-.btn-ghost{
-  background:#fff;
-  color:var(--accent);
-  border:1px solid var(--accent);
-}
-.btn-ghost:hover{
-  background:var(--accent);
-  color:#fff;
-}
+.muted{color:var(--ink3);font-size:13px;}
+.hidden{display:none !important;}
+.notice{padding:10px;background:#fff4e6;border-left:4px solid var(--accent);}
 
-.btn-admin{
-  background:var(--admin);
-  color:#fff;
-}
-.btn-danger{
-  background:var(--danger);
-  color:#fff;
-}
-
-/* Tables */
-table{
-  width:100%;
-  border-collapse:collapse;
-  margin-top:10px;
-  background:var(--card);
-}
-th,td{
-  border-bottom:1px solid var(--line);
-  padding:8px;
-  text-align:center;
-}
-thead th{
-  background:var(--coulsdonRed);
-  color:#fff;
-}
-
-/* QR Modal */
 .modal-bg{
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,0.6);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  z-index:9999;
+  position:fixed;inset:0;background:rgba(0,0,0,.6);
+  display:flex;align-items:center;justify-content:center;z-index:9999;
 }
 .modal{
-  background:#fff;
-  width:90%;
-  max-width:420px;
-  padding:20px;
-  border-radius:12px;
-  position:relative;
+  background:#fff;width:90%;max-width:420px;padding:20px;border-radius:12px;position:relative;
 }
-.close-modal{
-  position:absolute;
-  top:10px;
-  right:10px;
-  color:var(--danger);
-  cursor:pointer;
-  font-weight:700;
-}
-
-/* Highlight for QR-deep-link */
-.highlight-fixture{
-  background:var(--highlight) !important;
-  transition:background 1.2s ease;
-}
-
-.hidden{ display:none !important; }
-.muted{ color:var(--ink3); font-size:13px; }
-.notice{
-  padding:10px;
-  background:#fff4e6;
-  border-left:4px solid var(--accent);
-}
+.close-modal{position:absolute;right:10px;top:10px;color:var(--danger);cursor:pointer;font-weight:700;}
 </style>
 </head>
 
@@ -168,22 +86,22 @@ thead th{
   </div>
 </div>
 
-<!-- QR MODAL (used for both fixture QR and league-join QR) -->
+<!-- QR MODAL (LEAGUE JOIN ONLY) -->
 <div id="qrModal" class="modal-bg hidden">
   <div class="modal">
     <span id="closeQRModal" class="close-modal">X</span>
-    <h3 id="qrModalTitle">QR Code</h3>
-    <div id="qrFixtureInfo"></div>
+    <h3 id="qrModalTitle">League QR (Join)</h3>
+    <div id="qrInfo"></div>
     <div id="qrBox" style="width:200px;height:200px;margin:10px auto;"></div>
-    <button id="openFixtureLink" class="btn" style="width:100%;">Open</button>
+    <button id="qrOpenBtn" class="btn" style="width:100%;">Open League Join Page</button>
   </div>
 </div>
 
-<!-- TOP TOOLBAR -->
+<!-- TOOLBAR -->
 <div class="card">
   <div class="row">
     <div class="col">
-      <strong>Leagues</strong><br>
+      <strong>Leagues</strong><br/>
       <select id="leagueSelect" style="width:100%;margin-top:6px;"></select>
       <div style="margin-top:8px;">
         <button id="btnLoad" class="btn-ghost">Load</button>
@@ -192,14 +110,15 @@ thead th{
         <button id="btnExportJSON" class="btn-ghost adminOnly hidden">Backup JSON</button>
         <label for="fileImportJSON" class="btn-ghost adminOnly hidden">Import</label>
         <input id="fileImportJSON" type="file" accept="application/json" class="hidden"/>
-        <!-- NEW: League-level QR (Join) -->
+        <!-- League-level join QR and quick copy link -->
         <button id="btnLeagueQR" class="btn-ghost">League QR (Join)</button>
+        <button id="btnCopyJoin" class="btn-ghost">Copy Join Link</button>
       </div>
     </div>
 
     <!-- Create League -->
     <div class="col adminOnly hidden">
-      <strong>Create New League/Tournament</strong>
+      <strong>Create New League / Tournament</strong>
       <div class="row" style="margin-top:6px;">
         <input id="newLeagueName" type="text" placeholder="Name" style="flex:2;">
         <select id="newLeagueSport" style="flex:1;">
@@ -227,23 +146,23 @@ thead th{
   </div>
 </div>
 
-<!-- NEW: League Join Panel (appears when ?league=<id>&join=1) -->
+<!-- JOIN PANEL (appears when ?league=<id>&join=1) -->
 <div id="joinPanel" class="card hidden">
   <h2>Join This League</h2>
   <p class="muted" id="joinLeagueName">—</p>
   <div class="row" style="margin-top:8px;">
     <input id="joinPlayerName" type="text" placeholder="Enter your name" style="flex:2;">
-    <button id="btnJoinLeague" class="btn" style="flex:1;">Join</button>
+    <button id="btnJoinLeague" class="btn" style="flex:1;">Request to Join</button>
   </div>
   <div class="muted" style="margin-top:6px;">
-    Note: Results can only be entered by staff. This page only registers you in the league.
+    Your request will be reviewed by staff. Results can only be entered by staff.
   </div>
 </div>
 
 <!-- MAIN GRID -->
 <div class="row">
 
-  <!-- PLAYERS -->
+  <!-- PLAYERS & PENDING -->
   <div class="card col">
     <h2>Players</h2>
     <div class="row adminOnly hidden">
@@ -253,18 +172,36 @@ thead th{
     </div>
     <div class="muted" style="margin-top:4px;">Minimum 8, maximum 32 players.</div>
     <ul id="playerList" style="margin-top:6px;"></ul>
+
+    <!-- PENDING APPROVALS -->
+    <div id="pendingCard" class="adminOnly hidden" style="margin-top:14px;">
+      <h3>Pending Approvals</h3>
+      <table id="pendingTable" style="margin-top:6px;">
+        <thead>
+          <tr>
+            <th style="text-align:left;">Name</th>
+            <th>Requested</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <div style="margin-top:8px;">
+        <button id="btnApproveAll" class="btn">Approve All</button>
+      </div>
+      <div class="muted" style="margin-top:6px;">
+        Approving changes the roster and clears existing fixtures/results to avoid mismatches.
+      </div>
+    </div>
   </div>
 
   <!-- ENTER RESULT + FIXTURES -->
   <div class="card col" style="flex:2;">
     <h2>Enter Result</h2>
 
-    <!-- Pool Form -->
+    <!-- Pool -->
     <div id="poolForm" class="hidden">
-      <div class="notice">
-        Ad-hoc or fixture results. Fixture results disappear when saved.
-      </div>
-
+      <div class="notice">Ad‑hoc or fixture results. Fixture results disappear when saved.</div>
       <div class="row adminOnly hidden" style="margin-top:8px;">
         <select id="poolWinner" style="flex:1;"></select>
         <select id="poolLoser" style="flex:1;"></select>
@@ -273,7 +210,6 @@ thead th{
           <option value="foul">Terminal Foul (2–1)</option>
         </select>
       </div>
-
       <button id="btnAddPoolResult" class="btn adminOnly hidden" style="margin-top:8px;">Submit Result</button>
 
       <h3 style="margin-top:14px;">Pool Fixtures</h3>
@@ -293,7 +229,6 @@ thead th{
               <th>Round</th><th>A</th><th>B</th>
               <th class="adminOnlyHeader">Winner</th>
               <th class="adminOnlyHeader">Type</th>
-              <th>QR</th>
               <th class="adminOnlyHeader">Save</th>
             </tr>
           </thead>
@@ -308,14 +243,13 @@ thead th{
       <button id="btnGenerateTT" class="btn adminOnly hidden" style="margin-top:8px;">Generate Fixtures</button>
       <button id="btnClearTT" class="btn-ghost adminOnly hidden" style="margin-left:6px;">Clear Fixtures</button>
 
-      <div id="ttFixturesWrap" class="hidden" style="margin-top:10px%;">
+      <div id="ttFixturesWrap" class="hidden" style="margin-top:10px;">
         <h3>Fixtures</h3>
         <table id="ttFixturesTable">
           <thead>
             <tr>
               <th>Round</th><th>Home</th><th>Away</th>
               <th class="adminOnlyHeader">Score</th>
-              <th>QR</th>
               <th class="adminOnlyHeader">Save</th>
             </tr>
           </thead>
@@ -358,7 +292,6 @@ thead th{
               <th>Round</th><th>A</th><th>B</th>
               <th class="adminOnlyHeader">Teams</th>
               <th class="adminOnlyHeader">Score</th>
-              <th>QR</th>
               <th class="adminOnlyHeader">Save</th>
             </tr>
           </thead>
@@ -389,99 +322,121 @@ thead th{
 <!-- Results Log -->
 <div class="card">
   <h2>Results Log</h2>
+
+  <!-- Undo Last -->
+  <div class="adminOnly hidden" style="margin-bottom:8px;">
+    <button id="btnUndoLast" class="btn-ghost">Undo Last</button>
+  </div>
+
   <table id="resultsTable">
     <thead>
-      <tr><th>#</th><th>Sport</th><th style="text-align:left;">Details</th><th>Points</th><th>Date</th></tr>
+      <tr>
+        <th>#</th><th>Sport</th><th style="text-align:left;">Details</th><th>Points</th><th>Date</th>
+        <th class="adminOnlyHeader">Undo</th>
+      </tr>
     </thead>
     <tbody></tbody>
   </table>
 </div>
 
-<!-- ================================
-     JAVASCRIPT (ALL LOGIC)
-     ================================ -->
 <script>
-/* --------------------------------------------------------------------------------------
-   ADMIN MODE + QR MODAL
--------------------------------------------------------------------------------------- */
+/* ============================================================
+   ADMIN MODE + VIEW TOGGLING
+============================================================ */
 let ADMIN_PASSWORD = "StaffOnly-4429";
 let adminMode = false;
 
-document.getElementById("adminModeBtn").onclick = function(){
+document.getElementById("adminModeBtn").onclick = ()=>{
   if(adminMode){
-    adminMode = false;
+    adminMode=false;
     document.getElementById("adminBanner").style.display="none";
     document.getElementById("adminModeBtn").textContent="Enter Admin Mode";
     applyPlayerView();
     return;
   }
   const pw = prompt("Enter admin password:");
-  if(pw === ADMIN_PASSWORD){
-    adminMode = true;
+  if(pw===ADMIN_PASSWORD){
+    adminMode=true;
     document.getElementById("adminBanner").style.display="block";
     document.getElementById("adminModeBtn").textContent="Exit Admin Mode";
     applyPlayerView();
-  } else {
+  }else{
     alert("Incorrect password.");
   }
 };
 
-/* QR Modal */
-const qrModal = document.getElementById("qrModal");
-const qrBox = document.getElementById("qrBox");
-const qrTitle = document.getElementById("qrModalTitle");
-const qrInfo = document.getElementById("qrFixtureInfo");
-const qrOpenBtn = document.getElementById("openFixtureLink");
-
-document.getElementById("closeQRModal").onclick = ()=>{
-  qrModal.classList.add("hidden");
-  qrBox.innerHTML="";
-};
-
-/* Fixture QR (existing) */
-function openQRModal(info){
-  qrModal.classList.remove("hidden");
-  qrBox.innerHTML="";
-  qrTitle.textContent = "Fixture QR Code";
-
-  qrInfo.innerHTML=`
-    <p><strong>League:</strong> ${info.leagueName}</p>
-    <p><strong>Sport:</strong> ${info.sport}</p>
-    <p><strong>Match:</strong> ${info.A} vs ${info.B}</p>
-    <p><strong>Fixture Code:</strong> ${info.id}</p>
-  `;
-
-  const url = `${window.location.origin}${window.location.pathname}?league=${info.leagueId}&fixture=${info.id}`;
-  new QRCode(qrBox,{text:url,width:200,height:200});
-  qrOpenBtn.textContent = "Open Fixture Page";
-  qrOpenBtn.onclick = ()=>window.location.href=url;
+function applyPlayerView(){
+  const headers = document.querySelectorAll(".adminOnlyHeader");
+  if(!adminMode){
+    document.querySelectorAll(".adminOnly").forEach(e=>e.classList.add("hidden"));
+    headers.forEach(e=>e.style.display="none");
+    const vn=document.getElementById("viewerNotice"); if(vn) vn.style.display="";
+  }else{
+    document.querySelectorAll(".adminOnly").forEach(e=>e.classList.remove("hidden"));
+    headers.forEach(e=>e.style.display="table-cell");
+    const vn=document.getElementById("viewerNotice"); if(vn) vn.style.display="none";
+  }
 }
 
-/* NEW: League-level QR (Join) */
-function openLeagueQRModal(L){
-  qrModal.classList.remove("hidden");
-  qrBox.innerHTML="";
-  qrTitle.textContent = "League QR (Join)";
+/* ============================================================
+   QR LIB LOADER (with fallback) + LEAGUE JOIN QR
+============================================================ */
+function ensureQRCodeLib(){
+  if(window.QRCode) return Promise.resolve();
+  function load(src){
+    return new Promise((res,rej)=>{
+      const s=document.createElement('script');
+      s.src=src; s.onload=res; s.onerror=()=>rej(new Error('Failed '+src));
+      document.head.appendChild(s);
+    });
+  }
+  return load('https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js')
+    .catch(()=>load('https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js'));
+}
 
-  const url = `${window.location.origin}${window.location.pathname}?league=${L.id}&join=1`;
+document.getElementById("btnLeagueQR").onclick = async ()=>{
+  const L=currentLeague(); if(!L){ alert("Load or create a league first."); return; }
+  const url = `${location.origin}${location.pathname}?league=${L.id}&join=1`;
+  const modal=document.getElementById("qrModal");
+  const box=document.getElementById("qrBox");
+  const info=document.getElementById("qrInfo");
+  const openBtn=document.getElementById("qrOpenBtn");
 
-  qrInfo.innerHTML = `
+  info.innerHTML = `
     <p><strong>League:</strong> ${L.name}</p>
     <p><strong>Mode:</strong> Join this league</p>
     <p class="muted">Students scan to open a join page and add their name to this league.</p>
   `;
+  openBtn.onclick = ()=> location.href = url;
+  box.innerHTML="";
+  modal.classList.remove("hidden");
+  try{
+    await ensureQRCodeLib();
+    new QRCode(box,{text:url,width:200,height:200});
+  }catch(e){
+    box.innerHTML = `<div class="muted" style="color:#8B0A10;text-align:center;">QR script blocked. Use the button.</div>`;
+    console.error(e);
+  }
+};
+document.getElementById("closeQRModal").onclick = ()=>{
+  document.getElementById("qrModal").classList.add("hidden");
+  document.getElementById("qrBox").innerHTML="";
+};
 
-  new QRCode(qrBox, { text: url, width: 200, height: 200 });
+document.getElementById("btnCopyJoin").onclick = ()=>{
+  const L=currentLeague(); if(!L){ alert("Load or create a league first."); return; }
+  const url = `${location.origin}${location.pathname}?league=${L.id}&join=1`;
+  navigator.clipboard.writeText(url).then(
+    ()=>alert("Join link copied!"),
+    ()=>alert("Could not copy. Use League QR (Join) → Open.")
+  );
+};
 
-  qrOpenBtn.textContent = "Open League Join Page";
-  qrOpenBtn.onclick = () => window.location.href = url;
-}
-
-/* --------------------------------------------------------------------------------------
-   APP ENGINE: storage, leagues, fixtures, results, standings
--------------------------------------------------------------------------------------- */
-const STORAGE_KEY="CoulsdonLeagueManager_v1";
-let app={ leagues:{}, current:null };
+/* ============================================================
+   APP STORAGE + MODEL (with pending)
+============================================================ */
+const STORAGE_KEY="CoulsdonLeagueManager_v_minQR_approvals_undo";
+let app={leagues:{},current:null};
 
 function loadAll(){
   try{
@@ -489,35 +444,28 @@ function loadAll(){
     if(raw){ app=JSON.parse(raw); }
     if(!app.leagues) app.leagues={};
   }catch(e){ app={leagues:{},current:null}; }
+  // migrate: ensure 'pending' array
+  Object.values(app.leagues).forEach(L=>{
+    if(!L.pending) L.pending=[];
+  });
 }
-function saveAll(){ localStorage.setItem(STORAGE_KEY,JSON.stringify(app)); }
+function saveAll(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(app)); }
 loadAll();
 
 function newLeagueId(){ return "L"+Math.random().toString(36).slice(2,8); }
-
 function createLeague(name,sport,options={}){
   const id=newLeagueId();
-  app.leagues[id]={
-    id,name,sport,options,
-    players:[],
-    standings:{},
-    fixtures:[],
-    results:[]
-  };
-  app.current=id;
-  saveAll();
-  return app.leagues[id];
+  app.leagues[id]={id,name,sport,options,players:[],standings:{},fixtures:[],results:[],pending:[]};
+  app.current=id; saveAll(); return app.leagues[id];
 }
-function currentLeague(){
-  return app.leagues[app.current] || null;
-}
+function currentLeague(){ return app.leagues[app.current] || null; }
 
+/* ============================================================
+   STANDINGS + FIXTURES ENGINE
+============================================================ */
 function defaultStandings(players){
-  const s={};
-  players.forEach(p=>s[p]={P:0,W:0,D:0,L:0,GF:0,GA:0,GD:0,Pts:0});
-  return s;
+  const s={}; players.forEach(p=>s[p]={P:0,W:0,D:0,L:0,GF:0,GA:0,GD:0,Pts:0}); return s;
 }
-
 function recomputeStandings(L){
   L.standings=defaultStandings(L.players);
   L.results.forEach(r=>{
@@ -527,19 +475,15 @@ function recomputeStandings(L){
       L.standings[w].W++; L.standings[l].L++;
       if(r.mode==="normal") L.standings[w].Pts+=3;
       else { L.standings[w].Pts+=2; L.standings[l].Pts+=1; }
-    }
-    else if(r.sport==="TableTennis"){
+    }else if(r.sport==="TableTennis"){
       const win = r.homePts>r.awayPts ? r.home : r.away;
       const los = r.homePts>r.awayPts ? r.away : r.home;
       L.standings[win].P++; L.standings[los].P++;
       L.standings[win].W++; L.standings[los].L++;
       L.standings[win].Pts+=3;
-      L.standings[r.home].GF+=r.homePts;
-      L.standings[r.home].GA+=r.awayPts;
-      L.standings[r.away].GF+=r.awayPts;
-      L.standings[r.away].GA+=r.homePts;
-    }
-    else if(r.sport==="FIFA"){
+      L.standings[r.home].GF+=r.homePts; L.standings[r.home].GA+=r.awayPts;
+      L.standings[r.away].GF+=r.awayPts; L.standings[r.away].GA+=r.homePts;
+    }else if(r.sport==="FIFA"){
       const A=r.A,B=r.B,ga=r.goalsA,gb=r.goalsB;
       L.standings[A].P++; L.standings[B].P++;
       L.standings[A].GF+=ga; L.standings[A].GA+=gb;
@@ -551,237 +495,208 @@ function recomputeStandings(L){
   });
   Object.values(L.standings).forEach(s=>s.GD=s.GF-s.GA);
 }
-
 function generateRoundRobin(players,double=false){
-  const arr=[...players];
-  if(arr.length%2===1) arr.push(null);
-  const n=arr.length;
-  const rounds=[];
+  const arr=[...players]; if(arr.length%2===1) arr.push(null);
+  const n=arr.length, rounds=[];
   for(let r=0;r<n-1;r++){
     const group=[];
     for(let i=0;i<n/2;i++){
-      const A=arr[i],B=arr[n-1-i];
-      if(A&&B) group.push({home:A,away:B,round:r+1});
+      const A=arr[i],B=arr[n-1-i]; if(A&&B) group.push({home:A,away:B,round:r+1});
     }
     rounds.push(group);
-    const rest=arr.slice(1);
-    rest.unshift(rest.pop());
-    arr.splice(1,rest.length,...rest);
+    const rest=arr.slice(1); rest.unshift(rest.pop()); arr.splice(1,rest.length,...rest);
   }
-  let fixtures=rounds.flat();
-  if(double){
-    fixtures=fixtures.concat(fixtures.map(f=>({
-      home:f.away,away:f.home,round:f.round+rounds.length
-    })));
-  }
-  return fixtures;
+  let fx=rounds.flat();
+  if(double){ fx=fx.concat(fx.map(f=>({home:f.away,away:f.home,round:f.round+rounds.length}))); }
+  return fx;
 }
 
-/* ----------------------------
-   RENDER CORE UI
----------------------------- */
+/* ============================================================
+   RENDERING
+============================================================ */
 function renderLeagueSelect(){
-  const sel=document.getElementById("leagueSelect");
-  sel.innerHTML="";
+  const sel=document.getElementById("leagueSelect"); sel.innerHTML="";
   Object.values(app.leagues).forEach(L=>{
-    const o=document.createElement("option");
-    o.value=L.id;
-    o.textContent=`${L.name} — ${L.sport}`;
-    sel.appendChild(o);
+    const o=document.createElement("option"); o.value=L.id; o.textContent=`${L.name} — ${L.sport}`; sel.appendChild(o);
   });
   if(app.current) sel.value=app.current;
 }
-
 function renderSummary(){
   const L=currentLeague();
   if(!L){
     document.getElementById("sumName").textContent="No league selected";
     document.getElementById("sumSport").textContent="—";
     document.getElementById("sumMeta").textContent="Select or create a league to begin.";
+    document.getElementById("poolForm").classList.add("hidden");
+    document.getElementById("ttForm").classList.add("hidden");
+    document.getElementById("fifaForm").classList.add("hidden");
     return;
   }
   document.getElementById("sumName").textContent=L.name;
   document.getElementById("sumSport").textContent=L.sport;
-  document.getElementById("sumMeta").textContent=`${L.players.length} players`;
-  // Show sport forms:
+  document.getElementById("sumMeta").textContent =
+    `${L.players.length} players` + (L.pending?.length ? ` — ${L.pending.length} pending` : "");
   document.getElementById("poolForm").classList.toggle("hidden", L.sport!=="Pool");
   document.getElementById("ttForm").classList.toggle("hidden", L.sport!=="TableTennis");
   document.getElementById("fifaForm").classList.toggle("hidden", L.sport!=="FIFA");
 }
-
 function renderPlayers(){
   const L=currentLeague(); if(!L) return;
-  const ul=document.getElementById("playerList");
-  ul.innerHTML="";
+  const ul=document.getElementById("playerList"); ul.innerHTML="";
   L.players.forEach(p=>{
     const li=document.createElement("li");
-    li.innerHTML=`
-      <div style="display:flex;justify-content:space-between;">
-        <span>${p}</span>
-        <button onclick="removePlayer('${p}')" class="btn-ghost adminOnly hidden">Remove</button>
-      </div>`;
+    li.innerHTML=`<div style="display:flex;justify-content:space-between;">
+      <span>${p}</span>
+      <button class="btn-ghost adminOnly hidden" onclick="removePlayer('${p.replace(/'/g,"\\'")}')">Remove</button>
+    </div>`;
     ul.appendChild(li);
   });
-
-  const fills=["poolWinner","poolLoser","fifaA","fifaB"];
-  fills.forEach(id=>{
-    const el=document.getElementById(id);
-    if(!el) return;
-    el.innerHTML="";
-    L.players.forEach(p=>{
-      const o=document.createElement("option");
-      o.value=p; o.textContent=p;
-      el.appendChild(o);
-    });
+  ["poolWinner","poolLoser","fifaA","fifaB"].forEach(id=>{
+    const el=document.getElementById(id); if(!el) return; el.innerHTML="";
+    L.players.forEach(p=>{ const o=document.createElement("option"); o.value=p; o.textContent=p; el.appendChild(o); });
   });
 }
-
 function removePlayer(name){
   const L=currentLeague(); if(!L) return;
   if(!confirm(`Remove ${name}?`)) return;
-  L.players=L.players.filter(x=>x!==name);
-  L.fixtures=[]; L.results=[];
+  L.players=L.players.filter(x=>x!==name); L.fixtures=[]; L.results=[]; saveAll(); renderAll();
+}
+
+/* ----- Pending Approvals ----- */
+function sanitizeName(name){ return (name||"").replace(/\s+/g,' ').trim(); }
+
+function renderPendingApprovals(){
+  const L = currentLeague(); if(!L) return;
+  const card = document.getElementById('pendingCard');
+  const tbody = document.querySelector('#pendingTable tbody');
+  if(!L.pending || L.pending.length===0){
+    card.classList.add('hidden'); if(tbody) tbody.innerHTML = "";
+    return;
+  }
+  card.classList.remove('hidden');
+  tbody.innerHTML = "";
+  L.pending.forEach(p=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="text-align:left;">${p.name}</td>
+      <td>${p.requestedAt || ""}</td>
+      <td>
+        <button class="btn" onclick="approvePending('${p.name.replace(/'/g,"\\'")}')">Approve</button>
+        <button class="btn-ghost" onclick="rejectPending('${p.name.replace(/'/g,"\\'")}')">Reject</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+function approvePending(name){
+  const L = currentLeague(); if(!L) return;
+  const t = sanitizeName(name);
+  if(L.players.includes(t)){
+    L.pending = L.pending.filter(x=>x.name!==t);
+    saveAll(); renderAll(); return;
+  }
+  if(L.players.length >= 32){ alert("League at capacity (32)."); return; }
+  L.players.push(t);
+  L.pending = L.pending.filter(x=>x.name!==t);
+  L.fixtures = []; L.results = [];
   saveAll(); renderAll();
 }
-
-/* ----------------------------
-   UNIVERSAL QR BUTTON BUILDER
----------------------------- */
-function qrButtonHTML(L,f,code){
-  let A,B,sport;
-  if(code==="PL"){ A=f.A; B=f.B; sport="Pool"; }
-  if(code==="TT"){ A=f.home; B=f.away; sport="Table Tennis"; }
-  if(code==="FF"){ A=f.A; B=f.B; sport="FIFA / Esports"; }
-  return `
-    <button class="btn-ghost"
-      onclick="openQRModal({
-        leagueId:'${L.id}',
-        leagueName:'${L.name}',
-        sport:'${sport}',
-        A:'${A}', B:'${B}',
-        id:'${f.id}'
-      })">QR</button>`;
+function rejectPending(name){
+  const L = currentLeague(); if(!L) return;
+  const t = sanitizeName(name);
+  L.pending = L.pending.filter(x=>x.name!==t);
+  saveAll(); renderAll();
 }
+document.getElementById('btnApproveAll').onclick = ()=>{
+  const L = currentLeague(); if(!L) return;
+  if(!L.pending?.length){ alert("No pending requests."); return; }
+  for(const req of [...L.pending]){
+    if(L.players.length >= 32) break;
+    if(!L.players.includes(req.name)) L.players.push(req.name);
+  }
+  L.pending = [];
+  L.fixtures = []; L.results = [];
+  saveAll(); renderAll();
+};
 
-/* ----------------------------
-   POOL FIXTURES RENDER + SAVE
----------------------------- */
+/* ----- Pool fixtures (no QR column) ----- */
 function renderPoolFixtures(){
   const L=currentLeague(); if(!L) return;
   const wrap=document.getElementById("poolFixturesWrap");
-  const tb=document.querySelector("#poolFixturesTable tbody");
-  tb.innerHTML="";
-  const fx=L.fixtures.filter(f=>f.type==="PL");
-  wrap.classList.toggle("hidden",fx.length===0);
-
+  const tb=document.querySelector("#poolFixturesTable tbody"); tb.innerHTML="";
+  const fx=L.fixtures.filter(f=>f.type==="PL"); wrap.classList.toggle("hidden",fx.length===0);
   fx.forEach(f=>{
-    const tr=document.createElement("tr");
-    tr.id=f.id;
-    tr.innerHTML=`
-      <td>${f.round}</td>
-      <td>${f.A}</td>
-      <td>${f.B}</td>
+    const tr=document.createElement("tr"); tr.innerHTML=`
+      <td>${f.round}</td><td>${f.A}</td><td>${f.B}</td>
       <td class="adminOnlyHeader"><select id="plWin_${f.id}">
-        <option value="${f.A}">${f.A}</option>
-        <option value="${f.B}">${f.B}</option>
+        <option value="${f.A}">${f.A}</option><option value="${f.B}">${f.B}</option>
       </select></td>
-      <td class="adminOnlyHeader">
-        <select id="plMode_${f.id}">
-          <option value="normal">Normal</option>
-          <option value="foul">Foul</option>
-        </select></td>
-      <td>${qrButtonHTML(L,f,"PL")}</td>
-      <td class="adminOnlyHeader">
-        <button class="btn" onclick="savePoolFixture('${f.id}')">Save</button>
-      </td>`;
+      <td class="adminOnlyHeader"><select id="plMode_${f.id}">
+        <option value="normal">Normal</option><option value="foul">Foul</option>
+      </select></td>
+      <td class="adminOnlyHeader"><button class="btn" onclick="savePoolFixture('${f.id}')">Save</button></td>`;
     tb.appendChild(tr);
   });
 }
-
 function savePoolFixture(id){
   const L=currentLeague(); if(!L) return;
   const f=L.fixtures.find(x=>x.id===id);
   const winner=document.getElementById(`plWin_${id}`).value;
   const loser=(winner===f.A?f.B:f.A);
   const mode=document.getElementById(`plMode_${id}`).value;
-
   L.results.push({
-    sport:"Pool",fixtureId:id,winner,loser,mode,
+    sport:"Pool",
+    fixtureId:id,
+    winner, loser, mode,
+    A: f.A, B: f.B, round: f.round,             // for UNDO restore
     date:new Date().toLocaleString()
   });
-  L.fixtures=L.fixtures.filter(x=>x.id!==id);
-  saveAll(); renderAll();
+  L.fixtures=L.fixtures.filter(x=>x.id!==id); saveAll(); renderAll();
 }
 
-/* ----------------------------
-   TABLE TENNIS FIXTURES
----------------------------- */
+/* ----- TT fixtures ----- */
 function renderTTFixtures(){
   const L=currentLeague(); if(!L) return;
   const wrap=document.getElementById("ttFixturesWrap");
-  const tb=document.querySelector("#ttFixturesTable tbody");
-  tb.innerHTML="";
-  const fx=L.fixtures.filter(f=>f.type==="TT");
-  wrap.classList.toggle("hidden",fx.length===0);
-
+  const tb=document.querySelector("#ttFixturesTable tbody"); tb.innerHTML="";
+  const fx=L.fixtures.filter(f=>f.type==="TT"); wrap.classList.toggle("hidden",fx.length===0);
   fx.forEach(f=>{
-    const tr=document.createElement("tr");
-    tr.id=f.id;
-    tr.innerHTML=`
-      <td>${f.round}</td>
-      <td>${f.home}</td>
-      <td>${f.away}</td>
+    const tr=document.createElement("tr"); tr.innerHTML=`
+      <td>${f.round}</td><td>${f.home}</td><td>${f.away}</td>
       <td class="adminOnlyHeader">
         <input id="ttH_${f.id}" type="number" min="0" style="width:60px;">
         <input id="ttA_${f.id}" type="number" min="0" style="width:60px;">
       </td>
-      <td>${qrButtonHTML(L,f,"TT")}</td>
-      <td class="adminOnlyHeader">
-        <button class="btn" onclick="saveTTFixture('${f.id}')">Save</button>
-      </td>`;
+      <td class="adminOnlyHeader"><button class="btn" onclick="saveTTFixture('${f.id}')">Save</button></td>`;
     tb.appendChild(tr);
   });
 }
-
 function saveTTFixture(id){
   const L=currentLeague(); if(!L) return;
   const f=L.fixtures.find(x=>x.id===id);
-
   const h=parseInt(document.getElementById(`ttH_${id}`).value,10);
   const a=parseInt(document.getElementById(`ttA_${id}`).value,10);
   if(isNaN(h)||isNaN(a)) return alert("Enter both scores.");
-  if(Math.max(h,a)<11 || Math.abs(h-a)<2)
-    return alert("Winner must reach 11 AND win by 2.");
-
+  if(Math.max(h,a)<11 || Math.abs(h-a)<2) return alert("Winner must reach 11 AND win by 2.");
   L.results.push({
     sport:"TableTennis",
     fixtureId:id,
-    home:f.home,away:f.away,
-    homePts:h,awayPts:a,
+    home:f.home, away:f.away, homePts:h, awayPts:a,
+    round: f.round,                               // for UNDO restore
     date:new Date().toLocaleString()
   });
-  L.fixtures=L.fixtures.filter(x=>x.id!==id);
-  saveAll(); renderAll();
+  L.fixtures=L.fixtures.filter(x=>x.id!==id); saveAll(); renderAll();
 }
 
-/* ----------------------------
-   FIFA FIXTURES
----------------------------- */
+/* ----- FIFA fixtures ----- */
 function renderFifaFixtures(){
   const L=currentLeague(); if(!L) return;
   const wrap=document.getElementById("fifaFixturesWrap");
-  const tb=document.querySelector("#fifaFixturesTable tbody");
-  tb.innerHTML="";
-  const fx=L.fixtures.filter(f=>f.type==="FF");
-  wrap.classList.toggle("hidden",fx.length===0);
-
+  const tb=document.querySelector("#fifaFixturesTable tbody"); tb.innerHTML="";
+  const fx=L.fixtures.filter(f=>f.type==="FF"); wrap.classList.toggle("hidden",fx.length===0);
   fx.forEach(f=>{
-    const tr=document.createElement("tr");
-    tr.id=f.id;
-    tr.innerHTML=`
-      <td>${f.round}</td>
-      <td>${f.A}</td>
-      <td>${f.B}</td>
+    const tr=document.createElement("tr"); tr.innerHTML=`
+      <td>${f.round}</td><td>${f.A}</td><td>${f.B}</td>
       <td class="adminOnlyHeader">
         <input id="ffTA_${f.id}" placeholder="Team A" style="width:120px;">
         <input id="ffTB_${f.id}" placeholder="Team B" style="width:120px;">
@@ -790,72 +705,147 @@ function renderFifaFixtures(){
         <input id="ffGA_${f.id}" type="number" min="0" style="width:60px;">
         <input id="ffGB_${f.id}" type="number" min="0" style="width:60px;">
       </td>
-      <td>${qrButtonHTML(L,f,"FF")}</td>
-      <td class="adminOnlyHeader">
-        <button class="btn" onclick="saveFifaFixture('${f.id}')">Save</button>
-      </td>`;
+      <td class="adminOnlyHeader"><button class="btn" onclick="saveFifaFixture('${f.id}')">Save</button></td>`;
     tb.appendChild(tr);
   });
 }
-
 function saveFifaFixture(id){
   const L=currentLeague(); if(!L) return;
   const f=L.fixtures.find(x=>x.id===id);
-
   const ga=parseInt(document.getElementById(`ffGA_${id}`).value,10);
   const gb=parseInt(document.getElementById(`ffGB_${id}`).value,10);
   if(isNaN(ga)||isNaN(gb)) return alert("Enter both scores.");
-
-  const teamA=document.getElementById(`ffTA_${id}`).value||"—";
-  const teamB=document.getElementById(`ffTB_${id}`).value||"—";
-
+  const ta=document.getElementById(`ffTA_${id}`).value||"—";
+  const tb=document.getElementById(`ffTB_${id}`).value||"—";
   L.results.push({
     sport:"FIFA",
     fixtureId:id,
-    A:f.A,B:f.B,
-    goalsA:ga,goalsB:gb,
-    teamA,teamB,
+    A:f.A, B:f.B, goalsA:ga, goalsB:gb, teamA:ta, teamB:tb,
+    round: f.round,                                 // for UNDO restore
     date:new Date().toLocaleString()
   });
-
-  L.fixtures=L.fixtures.filter(x=>x.id!==id);
-  saveAll(); renderAll();
+  L.fixtures=L.fixtures.filter(x=>x.id!==id); saveAll(); renderAll();
 }
 
-/* ----------------------------
+/* ============================================================
+   RESULTS LOG + UNDO
+============================================================ */
+function restoreFixtureFromResult(L, r){
+  if(!r || !r.fixtureId) return;                      // only fixtures can be restored
+  if(L.fixtures.some(f=>f.id===r.fixtureId)) return;  // no duplicates
+  if(r.sport==="Pool"){
+    const A = r.A || r.winner;
+    const B = r.B || r.loser;
+    if(!A || !B) return;
+    L.fixtures.unshift({ id:r.fixtureId, type:"PL", A, B, round: r.round ?? "?" });
+  }else if(r.sport==="TableTennis"){
+    if(!r.home || !r.away) return;
+    L.fixtures.unshift({ id:r.fixtureId, type:"TT", home:r.home, away:r.away, round:r.round ?? "?" });
+  }else if(r.sport==="FIFA"){
+    if(!r.A || !r.B) return;
+    L.fixtures.unshift({ id:r.fixtureId, type:"FF", A:r.A, B:r.B, round:r.round ?? "?" });
+  }
+}
+function undoResultAt(index){
+  const L=currentLeague(); if(!L) return;
+  if(index<0 || index>=L.results.length) return;
+  const r=L.results[index];
+  if(!confirm(`Undo this result?\n\n${r.sport} – ${r.date||''}`)) return;
+  // remove result
+  L.results.splice(index,1);
+  // try to restore original fixture
+  restoreFixtureFromResult(L, r);
+  saveAll(); renderAll();
+}
+document.getElementById("btnUndoLast").onclick = ()=>{
+  const L=currentLeague(); if(!L) return;
+  if(!L.results.length){ alert("No results to undo."); return; }
+  undoResultAt(L.results.length - 1);
+};
+
+function renderResultsLog(){
+  const L=currentLeague(); if(!L) return;
+  const tb=document.querySelector("#resultsTable tbody");
+  tb.innerHTML="";
+  L.results.forEach((r,i)=>{
+    let d="",pts="", rtxt=r.round?` (R${r.round})`:"";
+    if(r.sport==="Pool"){
+      d=`${r.winner} beat ${r.loser} (${r.mode})${rtxt}`;
+      pts=r.mode==="normal"?`${r.winner}+3`:`${r.winner}+2, ${r.loser}+1`;
+    }else if(r.sport==="TableTennis"){
+      d=`${r.home} ${r.homePts}–${r.awayPts} ${r.away}${rtxt}`;
+      pts=`${(r.homePts>r.awayPts?r.home:r.away)}+3`;
+    }else{
+      d=`${r.A} (${r.teamA}) ${r.goalsA}–${r.goalsB} ${r.B} (${r.teamB})${rtxt}`;
+      pts=r.goalsA>r.goalsB?`${r.A}+3`:(r.goalsB>r.goalsA?`${r.B}+3`:`${r.A}+1, ${r.B}+1`);
+    }
+    const undoBtn = `<button class="btn-ghost adminOnly hidden" onclick="undoResultAt(${i})">Undo</button>`;
+    tb.innerHTML+=`
+      <tr>
+        <td>${i+1}</td>
+        <td>${r.sport}</td>
+        <td style="text-align:left;">${d}</td>
+        <td>${pts}</td>
+        <td>${r.date || ''}</td>
+        <td class="adminOnlyHeader">${undoBtn}</td>
+      </tr>`;
+  });
+}
+
+/* ============================================================
+   STANDINGS RENDER
+============================================================ */
+function renderStandings(){
+  const L=currentLeague(); if(!L) return; recomputeStandings(L);
+  const tb=document.querySelector("#tableStandings tbody"); tb.innerHTML="";
+  document.querySelectorAll(".colDraw").forEach(h=>h.style.display = (L.sport==='FIFA') ? 'table-cell' : 'none');
+  document.querySelectorAll(".colGD").forEach(h=>h.style.display = (L.sport==='Pool') ? 'none' : 'table-cell');
+
+  const arr=Object.entries(L.standings)
+    .sort((a,b)=>b[1].Pts - a[1].Pts || b[1].GD - a[1].GD || b[1].GF - a[1].GF);
+  arr.forEach(([n,s],i)=>{
+    tb.innerHTML+=`
+      <tr>
+        <td>${i+1}</td><td style="text-align:left;">${n}</td>
+        <td>${s.P}</td><td>${s.W}</td>
+        <td style="display:${L.sport==='FIFA'?'table-cell':'none'}">${s.D}</td>
+        <td>${s.L}</td>
+        <td style="display:${L.sport==='Pool'?'none':'table-cell'}">${s.GF}</td>
+        <td style="display:${L.sport==='Pool'?'none':'table-cell'}">${s.GA}</td>
+        <td style="display:${L.sport==='Pool'?'none':'table-cell'}">${s.GD}</td>
+        <td><strong>${s.Pts}</strong></td>
+      </tr>`;
+  });
+}
+
+/* ============================================================
    AD-HOC ENTRIES (Pool & FIFA)
----------------------------- */
-document.getElementById("btnAddPoolResult").onclick = () => {
+============================================================ */
+document.getElementById("btnAddPoolResult").onclick = ()=>{
   const L=currentLeague(); if(!L||L.sport!=="Pool") return;
   const w=document.getElementById("poolWinner").value;
-  const l=document.getElementById("poolLoser").value;
-  if(w===l) return alert("Winner and loser cannot match.");
-  const mode=document.getElementById("poolWinType").value;
-  L.results.push({sport:"Pool",winner:w,loser:l,mode,date:new Date().toLocaleString()});
+  const l=document.getElementById("poolLoser").value; if(w===l) return alert("Winner and loser cannot match.");
+  const m=document.getElementById("poolWinType").value;
+  L.results.push({sport:"Pool",winner:w,loser:l,mode:m,date:new Date().toLocaleString()});
   saveAll(); renderAll();
 };
-
-document.getElementById("btnAddFifaResult").onclick = () => {
+document.getElementById("btnAddFifaResult").onclick = ()=>{
   const L=currentLeague(); if(!L||L.sport!=="FIFA") return;
-  const A=document.getElementById("fifaA").value;
-  const B=document.getElementById("fifaB").value;
-  if(A===B) return alert("Players must differ.");
-  const ta=document.getElementById("fifaTeamA").value||"—";
-  const tb=document.getElementById("fifaTeamB").value||"—";
+  const A=document.getElementById("fifaA").value, B=document.getElementById("fifaB").value; if(A===B) return alert("Players must differ.");
+  const ta=document.getElementById("fifaTeamA").value||"—", tb=document.getElementById("fifaTeamB").value||"—";
   const ga=parseInt(document.getElementById("fifaGoalsA").value,10)||0;
   const gb=parseInt(document.getElementById("fifaGoalsB").value,10)||0;
-  L.results.push({
-    sport:"FIFA",A,B,goalsA:ga,goalsB:gb,teamA:ta,teamB:tb,
-    date:new Date().toLocaleString()
-  });
+  L.results.push({sport:"FIFA",A,B,goalsA:ga,goalsB:gb,teamA:ta,teamB:tb,date:new Date().toLocaleString()});
   saveAll(); renderAll();
 };
 
-/* ----------------------------
-   FIXTURE GENERATION BUTTONS
----------------------------- */
+/* ============================================================
+   FIXTURE GENERATORS
+============================================================ */
 document.getElementById("btnGeneratePool").onclick = ()=>{
   const L=currentLeague(); if(!L||L.sport!=="Pool") return;
+  if(L.players.length<8) return alert("Minimum 8 players required.");
+  if(L.players.length>32) return alert("Maximum 32 players.");
   const double=document.getElementById("poolRounds").value==="double";
   const base=generateRoundRobin(L.players,double);
   L.fixtures=base.map((m,i)=>({id:"PL"+(i+1),type:"PL",A:m.home,B:m.away,round:m.round}));
@@ -863,23 +853,29 @@ document.getElementById("btnGeneratePool").onclick = ()=>{
 };
 document.getElementById("btnClearPool").onclick = ()=>{
   const L=currentLeague(); if(!L||L.sport!=="Pool") return;
+  if(!confirm("Clear Pool fixtures/results?")) return;
   L.fixtures=[]; L.results=[]; saveAll(); renderAll();
 };
 
 document.getElementById("btnGenerateTT").onclick = ()=>{
   const L=currentLeague(); if(!L||L.sport!=="TableTennis") return;
-  const double=L.options.ttRounds==="double";
+  if(L.players.length<8) return alert("Minimum 8 players required.");
+  if(L.players.length>32) return alert("Maximum 32 players.");
+  const double=(L.options.ttRounds==="double");
   const base=generateRoundRobin(L.players,double);
   L.fixtures=base.map((m,i)=>({id:"TT"+(i+1),type:"TT",home:m.home,away:m.away,round:m.round}));
   L.results=[]; saveAll(); renderAll();
 };
 document.getElementById("btnClearTT").onclick = ()=>{
   const L=currentLeague(); if(!L||L.sport!=="TableTennis") return;
+  if(!confirm("Clear TT fixtures/results?")) return;
   L.fixtures=[]; L.results=[]; saveAll(); renderAll();
 };
 
 document.getElementById("btnGenerateFifa").onclick = ()=>{
   const L=currentLeague(); if(!L||L.sport!=="FIFA") return;
+  if(L.players.length<8) return alert("Minimum 8 players required.");
+  if(L.players.length>32) return alert("Maximum 32 players.");
   const double=document.getElementById("fifaRounds").value==="double";
   const base=generateRoundRobin(L.players,double);
   L.fixtures=base.map((m,i)=>({id:"FF"+(i+1),type:"FF",A:m.home,B:m.away,round:m.round}));
@@ -887,386 +883,142 @@ document.getElementById("btnGenerateFifa").onclick = ()=>{
 };
 document.getElementById("btnClearFifa").onclick = ()=>{
   const L=currentLeague(); if(!L||L.sport!=="FIFA") return;
+  if(!confirm("Clear FIFA fixtures/results?")) return;
   L.fixtures=[]; L.results=[]; saveAll(); renderAll();
 };
 
-/* ----------------------------
-   PLAYER MANAGEMENT
----------------------------- */
+/* ============================================================
+   PLAYERS + LEAGUES
+============================================================ */
 document.getElementById("btnAddPlayer").onclick = ()=>{
   const L=currentLeague(); if(!L) return alert("Load or create a league first.");
   const name=document.getElementById("playerName").value.trim();
   if(!name) return;
   if(L.players.includes(name)) return alert("Player exists.");
   if(L.players.length>=32) return alert("Max 32 players.");
-  L.players.push(name);
-  L.fixtures=[]; L.results=[];
+  L.players.push(name); L.fixtures=[]; L.results=[];
   saveAll(); document.getElementById("playerName").value=""; renderAll();
 };
-
 document.getElementById("btnClearPlayers").onclick = ()=>{
   const L=currentLeague(); if(!L) return;
-  if(!confirm("Clear all players?")) return;
-  L.players=[]; L.fixtures=[]; L.results=[];
-  saveAll(); renderAll();
+  if(!confirm("Clear all players? This resets fixtures/results.")) return;
+  L.players=[]; L.fixtures=[]; L.results=[]; L.pending=[]; saveAll(); renderAll();
 };
 
-/* ---------------------------
-   LOAD / CREATE LEAGUES
----------------------------- */
 document.getElementById("btnLoad").onclick = ()=>{
-  app.current=document.getElementById("leagueSelect").value;
-  saveAll(); renderAll();
+  app.current=document.getElementById("leagueSelect").value; saveAll(); renderAll();
 };
 document.getElementById("btnCreate").onclick = ()=>{
   const name=document.getElementById("newLeagueName").value.trim();
   const sport=document.getElementById("newLeagueSport").value;
   if(!name) return alert("Enter a league name.");
-  const opt={};
-  if(sport==="TableTennis") opt.ttRounds=document.getElementById("ttRounds").value;
-  createLeague(name,sport,opt);
-  document.getElementById("newLeagueName").value="";
-  renderAll();
+  const opt={}; if(sport==="TableTennis") opt.ttRounds=document.getElementById("ttRounds").value;
+  createLeague(name,sport,opt); document.getElementById("newLeagueName").value=""; renderAll();
 };
 
-/* ---------------------------
-   EXPORT CSV + PRINT + BACKUP
----------------------------- */
+/* ============================================================
+   EXPORTS
+============================================================ */
 document.getElementById("btnExportCSV").onclick = ()=>{
   const L=currentLeague(); if(!L) return;
   recomputeStandings(L);
-  const rows=Object.entries(L.standings)
-    .sort((a,b)=>b[1].Pts - a[1].Pts)
-    .map(([n,s],i)=>[
-      i+1,n,s.P,s.W,s.D,s.L,s.GF,s.GA,s.GD,s.Pts
-    ].join(","));
+  const rows=Object.entries(L.standings).sort((a,b)=>b[1].Pts - a[1].Pts)
+    .map(([n,s],i)=>[i+1,n,s.P,s.W,s.D,s.L,s.GF,s.GA,s.GD,s.Pts].join(","));
   const csv=["Pos,Player,P,W,D,L,GF,GA,GD,Pts",...rows].join("\n");
   const blob=new Blob([csv],{type:"text/csv"});
-  const a=document.createElement("a");
-  a.href=URL.createObjectURL(blob);
-  a.download=`${L.name.replace(/\s+/g,"_")}_standings.csv`;
-  a.click();
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=`${L.name.replace(/\s+/g,"_")}_standings.csv`; a.click();
 };
-
-document.getElementById("btnExportPrint").onclick = function(){
-  const L = currentLeague(); 
-  if(!L){ alert("No league selected."); return; }
-  recomputeStandings(L);
-
-  const newWin = window.open("", "_blank");
-  const rows = Object.entries(L.standings)
-    .sort((a,b)=>b[1].Pts - a[1].Pts || b[1].GD - a[1].GD)
-    .map(([name,s],i)=>`
-      <tr>
-        <td>${i+1}</td>
-        <td>${name}</td>
-        <td>${s.P}</td>
-        <td>${s.W}</td>
-        <td>${L.sport==='FIFA'? s.D : ''}</td>
-        <td>${s.L}</td>
-        <td>${L.sport==='Pool'?'':s.GF}</td>
-        <td>${L.sport==='Pool'?'':s.GA}</td>
-        <td>${L.sport==='Pool'?'':s.GD}</td>
-        <td><strong>${s.Pts}</strong></td>
-      </tr>
-    `).join("");
-
-  let tableHead = `
-    <tr>
-      <th>Pos</th><th>Player</th><th>P</th><th>W</th>
-      ${L.sport==='FIFA' ? '<th>D</th>' : '<th></th>'}
-      <th>L</th>
-      ${L.sport==='Pool' ? '<th></th><th></th><th></th>' : '<th>GF</th><th>GA</th><th>GD</th>'}
-      <th>Pts</th>
-    </tr>
-  `;
-
-  newWin.document.write(`
-    <html>
-      <head>
-        <title>${L.name} Standings</title>
-        <style>
-          body { font-family: Arial; padding: 20px; }
-          table { width: 100%; border-collapse: collapse; }
-          th, td { border: 1px solid #333; padding: 6px; text-align:center; }
-          h1 { margin-bottom: 10px; }
-        </style>
-      </head>
-      <body>
-        <h1>${L.name} — ${L.sport}</h1>
-        <p><em>Printed: ${new Date().toLocaleString()}</em></p>
-        <h2>Standings</h2>
-        <table>
-          <thead>${tableHead}</thead>
-          <tbody>${rows}</tbody>
-        </table>
-
-        <h2>Results Log</h2>
-        <table>
-          <thead>
-            <tr><th>#</th><th>Details</th><th>Points</th><th>Date</th></tr>
-          </thead>
-          <tbody>
-            ${
-              L.results.map((r,i)=>{
-                let d="",pts="";
-                if(r.sport==="Pool"){
-                  d=`${r.winner} beat ${r.loser} (${r.mode})`;
-                  pts = r.mode==="normal"? `${r.winner}+3` : `${r.winner}+2, ${r.loser}+1`;
-                }
-                else if(r.sport==="TableTennis"){
-                  d=`${r.home} ${r.homePts}–${r.awayPts} ${r.away}`;
-                  pts=`${(r.homePts>r.awayPts? r.home:r.away)}+3`;
-                }
-                else {
-                  d=`${r.A} ${r.goalsA}–${r.goalsB} ${r.B}`;
-                  pts = r.goalsA>r.goalsB? `${r.A}+3` : r.goalsB>r.goalsA? `${r.B}+3` : `${r.A}+1, ${r.B}+1`;
-                }
-                return `<tr><td>${i+1}</td><td>${d}</td><td>${pts}</td><td>${r.date}</td></tr>`;
-              }).join("")
-            }
-          </tbody>
-        </table>
-
-        <script>window.print();<\/script>
-      </body>
-    </html>
-  `);
-  newWin.document.close();
+document.getElementById("btnExportPrint").onclick = ()=>{
+  const L=currentLeague(); if(!L) return; recomputeStandings(L);
+  const w=window.open("","_blank");
+  const head=`<tr><th>Pos</th><th>Player</th><th>P</th><th>W</th>${L.sport==='FIFA'?'<th>D</th>':''}<th>L</th>${L.sport==='Pool'?'':'<th>GF</th><th>GA</th><th>GD</th>'}<th>Pts</th></tr>`;
+  const rows=Object.entries(L.standings).sort((a,b)=>b[1].Pts-a[1].Pts||b[1].GD-a[1].GD)
+    .map(([n,s],i)=>`<tr><td>${i+1}</td><td>${n}</td><td>${s.P}</td><td>${s.W}</td>${L.sport==='FIFA'?`<td>${s.D}</td>`:''}<td>${s.L}</td>${L.sport==='Pool'?'':`<td>${s.GF}</td><td>${s.GA}</td><td>${s.GD}</td>`}<td><b>${s.Pts}</b></td></tr>`).join("");
+  w.document.write(`<html><head><title>${L.name} – Standings</title><style>
+    body{font-family:Arial;padding:16px} table{width:100%;border-collapse:collapse} th,td{border:1px solid #333;padding:6px;text-align:center} thead th{background:#eee}
+  </style></head><body>
+  <h1>${L.name} – ${L.sport}</h1><p><em>Printed: ${new Date().toLocaleString()}</em></p>
+  <h2>Standings</h2><table><thead>${head}</thead><tbody>${rows}</tbody></table>
+  <h2>Results</h2><table><thead><tr><th>#</th><th>Details</th><th>Points</th><th>Date</th></tr></thead>
+  <tbody>${
+    L.results.map((r,i)=>{
+      let d="",p="", rtxt=r.round?` (R${r.round})`:"";
+      if(r.sport==="Pool"){d=`${r.winner} beat ${r.loser} (${r.mode})${rtxt}`; p=r.mode==="normal"?`${r.winner}+3`:`${r.winner}+2, ${r.loser}+1`;}
+      else if(r.sport==="TableTennis"){d=`${r.home} ${r.homePts}–${r.awayPts} ${r.away}${rtxt}`; p=`${(r.homePts>r.awayPts?r.home:r.away)}+3`;}
+      else {d=`${r.A} ${r.goalsA}–${r.goalsB} ${r.B}${rtxt}`; p=r.goalsA>r.goalsB?`${r.A}+3`:(r.goalsB>r.goalsA?`${r.B}+3`:`${r.A}+1, ${r.B}+1`);}
+      return `<tr><td>${i+1}</td><td>${d}</td><td>${p}</td><td>${r.date}</td></tr>`;
+    }).join("")
+  }</tbody></table>
+  <script>window.print();<\/script></body></html>`);
+  w.document.close();
 };
-
 document.getElementById("btnExportJSON").onclick = ()=>{
   const blob=new Blob([JSON.stringify(app,null,2)],{type:"application/json"});
-  const a=document.createElement("a");
-  a.href=URL.createObjectURL(blob);
-  a.download="league_backup.json";
-  a.click();
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="league_backup.json"; a.click();
 };
-
 document.getElementById("fileImportJSON").onchange = (e)=>{
-  const file=e.target.files[0];
-  if(!file) return;
-  const reader=new FileReader();
-  reader.onload=()=>{
-    try{
-      const d=JSON.parse(reader.result);
-      if(!d.leagues) throw "";
-      app=d; saveAll(); renderAll(); alert("Import successful.");
-    }catch(err){ alert("Import failed."); }
-  };
-  reader.readAsText(file);
+  const f=e.target.files[0]; if(!f) return;
+  const r=new FileReader(); r.onload=()=>{
+    try{ const d=JSON.parse(r.result); if(!d.leagues) throw ""; app=d; Object.values(app.leagues).forEach(L=>{if(!L.pending)L.pending=[];}); saveAll(); renderAll(); alert("Import successful."); }
+    catch{ alert("Import failed."); }
+  }; r.readAsText(f);
 };
 
-/* ---------------------------
-   RESULTS LOG + STANDINGS
----------------------------- */
-function renderResultsLog(){
-  const L=currentLeague(); if(!L) return;
-  const tb=document.querySelector("#resultsTable tbody");
-  tb.innerHTML="";
-  L.results.forEach((r,i)=>{
-    let d="",pts="";
-    if(r.sport==="Pool"){
-      d=`${r.winner} beat ${r.loser} (${r.mode})`;
-      pts=r.mode==="normal"?`${r.winner}+3`:`${r.winner}+2, ${r.loser}+1`;
-    }
-    else if(r.sport==="TableTennis"){
-      d=`${r.home} ${r.homePts}–${r.awayPts} ${r.away}`;
-      pts=`${(r.homePts>r.awayPts?r.home:r.away)}+3`;
-    }
-    else {
-      d=`${r.A} ${r.goalsA}–${r.goalsB} ${r.B}`;
-      pts=r.goalsA>r.goalsB?`${r.A}+3`:(r.goalsB>r.goalsA?`${r.B}+3`:`${r.A}+1,${r.B}+1`);
-    }
-    tb.innerHTML+=`
-      <tr>
-        <td>${i+1}</td>
-        <td>${r.sport}</td>
-        <td style="text-align:left;">${d}</td>
-        <td>${pts}</td>
-        <td>${r.date}</td>
-      </tr>`;
-  });
-}
-
-function renderStandings(){
-  const L=currentLeague(); if(!L) return;
-  recomputeStandings(L);
-  const tb=document.querySelector("#tableStandings tbody");
-  tb.innerHTML="";
-
-  const sorted=Object.entries(L.standings)
-    .sort((a,b)=>b[1].Pts - a[1].Pts || b[1].GD - a[1].GD || b[1].GF - a[1].GF);
-
-  sorted.forEach(([n,s],i)=>{
-    tb.innerHTML+=`
-      <tr>
-        <td>${i+1}</td>
-        <td style="text-align:left;">${n}</td>
-        <td>${s.P}</td><td>${s.W}</td>
-        <td class="${L.sport==='FIFA'?'':'hidden'}">${s.D}</td>
-        <td>${s.L}</td>
-        <td class="${L.sport==='Pool'?'hidden':''}">${s.GF}</td>
-        <td class="${L.sport==='Pool'?'hidden':''}">${s.GA}</td>
-        <td class="${L.sport==='Pool'?'hidden':''}">${s.GD}</td>
-        <td><strong>${s.Pts}</strong></td>
-      </tr>`;
-  });
-}
-
-/* ---------------------------
-   FIXTURE DEEP LINK VIEW
----------------------------- */
-function loadFixturePageIfNeeded(){
-  const params=new URLSearchParams(window.location.search);
-  const leagueId=params.get("league");
-  const fixtureId=params.get("fixture");
-  if(!leagueId || !fixtureId) return;
-
-  const L=app.leagues[leagueId];
-  if(!L) return;
-
-  app.current=leagueId; saveAll(); renderAll();
-
-  const f=L.fixtures.find(x=>x.id===fixtureId) ||
-          L.results.find(x=>x.fixtureId===fixtureId);
-  if(f) showFixtureViewer(L,f);
-}
-
-function showFixtureViewer(L,f){
-  let A,B;
-  if(f.type==="PL"){A=f.A; B=f.B;}
-  if(f.type==="TT"){A=f.home; B=f.away;}
-  if(f.type==="FF"){A=f.A; B=f.B;}
-
-  let viewer=document.getElementById("fixtureViewer");
-  if(!viewer){
-    viewer=document.createElement("div");
-    viewer.id="fixtureViewer";
-    viewer.className="card";
-    document.body.prepend(viewer);
-  }
-
-  viewer.innerHTML=`
-    <h2>Fixture View (QR)</h2>
-    <p><strong>League:</strong> ${L.name}</p>
-    <p><strong>Sport:</strong> ${L.sport}</p>
-    <p><strong>Match:</strong> ${A} vs ${B}</p>
-    <p><strong>Fixture Code:</strong> ${f.id}</p>
-    <p class="muted">Players cannot submit results. Staff must enter Admin Mode.</p>
-    <button class="btn-ghost" onclick="document.getElementById('adminModeBtn').scrollIntoView({behavior:'smooth'})">
-      Staff: Enter Admin Mode
-    </button>`;
-}
-
-/* ---------------------------
-   NEW: LEAGUE JOIN VIA QR
----------------------------- */
+/* ============================================================
+   JOIN VIA DEEP LINK (?league=<id>&join=1) -> PENDING
+============================================================ */
 function showJoinPanel(L){
-  const panel = document.getElementById("joinPanel");
-  const label = document.getElementById("joinLeagueName");
-  panel.classList.remove("hidden");
-  label.textContent = `${L.name} — ${L.sport}`;
+  document.getElementById("joinPanel").classList.remove("hidden");
+  document.getElementById("joinLeagueName").textContent = `${L.name} — ${L.sport}`;
 }
-
-function addPlayerIfPossible(L, name){
-  const trimmed = (name||"").trim();
-  if(!trimmed){ alert("Please enter your name."); return false; }
-  if(L.players.includes(trimmed)){ alert("That name is already registered in this league."); return false; }
+function addPendingRequest(L, name){
+  const t = sanitizeName(name);
+  if(!t){ alert("Please enter your name."); return false; }
+  if(L.players.includes(t)){ alert("That name is already registered in this league."); return false; }
+  if(L.pending.some(p=>p.name===t)){ alert("You already have a pending request for this league."); return false; }
   if(L.players.length >= 32){ alert("This league is full (32 players)."); return false; }
-  L.players.push(trimmed);
-  // Reset fixtures/results to avoid mismatches after roster change
-  L.fixtures = [];
-  L.results = [];
+  L.pending.push({ name: t, requestedAt: new Date().toLocaleString() });
   saveAll();
   return true;
 }
-
 function checkJoinDeepLink(){
-  const params = new URLSearchParams(window.location.search);
-  const leagueId = params.get("league");
-  const joinFlag = params.get("join");
-  if(!leagueId || joinFlag!=="1") return;
-
-  const L = app.leagues[leagueId];
-  if(!L) return;
-
-  app.current = leagueId;
-  saveAll();
-  renderAll();
-
-  showJoinPanel(L);
-
-  const btn = document.getElementById("btnJoinLeague");
-  if(btn._wired) return;
-  btn._wired = true;
-
+  const p=new URLSearchParams(location.search);
+  const id=p.get("league"), j=p.get("join");
+  if(!id || j!=="1") return;
+  const L=app.leagues[id]; if(!L) return;
+  app.current=id; saveAll(); renderAll(); showJoinPanel(L);
+  const btn=document.getElementById("btnJoinLeague");
+  if(btn._wired) return; btn._wired=true;
   btn.onclick = ()=>{
-    const name = document.getElementById("joinPlayerName").value;
-    if(addPlayerIfPossible(L, name)){
-      alert("You have been added to the league. Thank you!");
-      document.getElementById("joinPlayerName").value = "";
+    const name=document.getElementById("joinPlayerName").value;
+    if(addPendingRequest(L,name)){
+      alert("Request submitted. A staff member will approve it soon.");
+      document.getElementById("joinPlayerName").value="";
       renderAll();
     }
   };
 }
 
-/* Wire the toolbar "League QR (Join)" button */
-document.getElementById("btnLeagueQR").onclick = () => {
-  const L = currentLeague();
-  if(!L){ alert("Load or create a league first."); return; }
-  openLeagueQRModal(L);
-};
-
-/* ---------------------------
-   ADMIN/PLAYER MODE VISIBILITY
----------------------------- */
-function applyPlayerView(){
-  if(!adminMode){
-    document.querySelectorAll(".adminOnly").forEach(e=>e.classList.add("hidden"));
-    document.querySelectorAll(".adminOnlyHeader").forEach(e=>e.style.display="none");
-    const vn = document.getElementById("viewerNotice");
-    if(vn) vn.style.display="";
-  } else {
-    document.querySelectorAll(".adminOnly").forEach(e=>e.classList.remove("hidden"));
-    document.querySelectorAll(".adminOnlyHeader").forEach(e=>e.style.display="table-cell");
-    const vn = document.getElementById("viewerNotice");
-    if(vn) vn.style.display="none";
-  }
-}
-
-/* ---------------------------
-   RENDER EVERYTHING
----------------------------- */
+/* ============================================================
+   BOOT
+============================================================ */
 function renderAll(){
-  renderLeagueSelect();
-  renderSummary();
-  renderPlayers();
-  renderPoolFixtures();
-  renderTTFixtures();
-  renderFifaFixtures();
-  renderStandings();
-  renderResultsLog();
-  applyPlayerView();
+  renderLeagueSelect(); renderSummary(); renderPlayers(); renderPendingApprovals();
+  renderPoolFixtures(); renderTTFixtures(); renderFifaFixtures();
+  renderStandings(); renderResultsLog(); applyPlayerView();
 }
+renderAll(); checkJoinDeepLink();
 
-renderAll();
-loadFixturePageIfNeeded();
-checkJoinDeepLink();
-
-/* ---------------------------
-   MOBILE RESPONSIVENESS
----------------------------- */
+/* Mobile polish */
 function adjustForMobile(){
-  if(window.innerWidth < 700){
+  if(innerWidth<700){
     document.body.style.padding="10px";
     document.querySelectorAll(".card").forEach(c=>c.style.padding="12px");
     document.querySelectorAll("table").forEach(t=>t.style.fontSize="13px");
   }
 }
-window.addEventListener("resize",adjustForMobile);
+addEventListener("resize",adjustForMobile);
 document.addEventListener("DOMContentLoaded",adjustForMobile);
-
 </script>
 
 </body>
