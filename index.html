@@ -89,14 +89,14 @@ thead th{background:var(--coulsdonRed);color:#fff;}
   </div>
 </div>
 
-<!-- QR MODAL (LEAGUE JOIN ONLY) -->
+<!-- QR MODAL (LEAGUE JOIN + JOIN PORTAL) -->
 <div id="qrModal" class="modal-bg hidden">
   <div class="modal">
     <span id="closeQRModal" class="close-modal">X</span>
-    <h3 id="qrModalTitle">League QR (Join)</h3>
+    <h3 id="qrModalTitle">QR</h3>
     <div id="qrInfo"></div>
     <div id="qrBox" style="width:220px;height:220px;margin:12px auto;"></div>
-    <button id="qrOpenBtn" class="btn" style="width:100%;">Open League Join Page</button>
+    <button id="qrOpenBtn" class="btn" style="width:100%;">Open</button>
   </div>
 </div>
 
@@ -117,6 +117,10 @@ thead th{background:var(--coulsdonRed);color:#fff;}
         <!-- League-level Join QR -->
         <button id="btnLeagueQR" class="btn-ghost">League QR (Join)</button>
         <button id="btnCopyJoin" class="btn-ghost">Copy Join Link</button>
+
+        <!-- Join Portal (multi-league) -->
+        <button id="btnPortalQR" class="btn-ghost">Join Portal QR</button>
+        <button id="btnCopyPortal" class="btn-ghost">Copy Portal Link</button>
       </div>
     </div>
 
@@ -150,14 +154,25 @@ thead th{background:var(--coulsdonRed);color:#fff;}
   </div>
 </div>
 
-<!-- JOIN PANEL -->
+<!-- JOIN PANEL (single-league & portal) -->
 <div id="joinPanel" class="card hidden">
   <h2>Join This League</h2>
+
+  <!-- (Portal only) -->
+  <div id="joinLeaguePicker" class="row hidden" style="margin-top:8px;">
+    <select id="joinLeagueSelect" style="flex:2;"></select>
+  </div>
+
   <p class="muted" id="joinLeagueName" style="margin:6px 0;">—</p>
+
   <div class="row" style="margin-top:8px;">
     <input id="joinPlayerName" type="text" placeholder="Enter your name" style="flex:2;">
     <button id="btnJoinLeague" class="btn" style="flex:1;">Request to Join</button>
   </div>
+
+  <!-- Status message -->
+  <div id="joinMsg" class="muted" style="margin-top:6px;"></div>
+
   <div class="muted" style="margin-top:6px;">
     Your request will be reviewed by staff. Results can only be entered by staff.
   </div>
@@ -397,7 +412,7 @@ function applyPlayerView(){
 }
 
 /* ============================================================
-   QR LIB LOADER (with fallback) + LEAGUE JOIN QR (with seed)
+   QR LIB LOADER (with fallback) + JOIN QR/PORTAL
 ============================================================ */
 function ensureQRCodeLib(){
   if(window.QRCode) return Promise.resolve();
@@ -411,11 +426,14 @@ function ensureQRCodeLib(){
   return load('https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js')
     .catch(()=>load('https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js'));
 }
-// JSON <-> base64 helpers for seeds
+
+// JSON <-> base64 helpers for seeds/catalog
 function b64encode(obj){ return btoa(unescape(encodeURIComponent(JSON.stringify(obj)))); }
 function b64decode(str){ try{return JSON.parse(decodeURIComponent(escape(atob(str))))}catch(e){return null;} }
+
 // League seed (minimal)
 function buildLeagueSeed(L){ return {id:L.id, name:L.name, sport:L.sport, options:L.options||{}}; }
+
 // Ensure a league exists locally from a seed
 function ensureLeagueFromSeed(seed){
   if(!seed || !seed.id) return null;
@@ -429,7 +447,7 @@ function ensureLeagueFromSeed(seed){
   return app.leagues[seed.id];
 }
 
-/* Single-league Join QR */
+/* ----- Single-league Join QR (with seed) ----- */
 document.getElementById("btnLeagueQR").onclick = async ()=>{
   const L=currentLeague(); if(!L){ alert("Load or create a league first."); return; }
   const seed = b64encode(buildLeagueSeed(L));
@@ -439,7 +457,9 @@ document.getElementById("btnLeagueQR").onclick = async ()=>{
   const box=document.getElementById("qrBox");
   const info=document.getElementById("qrInfo");
   const openBtn=document.getElementById("qrOpenBtn");
+  const title=document.getElementById("qrModalTitle");
 
+  title.textContent = "League QR (Join)";
   info.innerHTML = `
     <p><strong>League:</strong> ${L.name}</p>
     <p><strong>Mode:</strong> Join this league</p>
@@ -458,6 +478,41 @@ document.getElementById("btnCopyJoin").onclick = ()=>{
   const url  = `${location.origin}${location.pathname}?league=${L.id}&join=1&seed=${seed}`;
   navigator.clipboard.writeText(url).then(()=>alert("Join link copied!"),()=>alert("Could not copy. Use the QR modal → Open."));
 };
+
+/* ----- Join Portal QR (multi-league) ----- */
+document.getElementById("btnPortalQR").onclick = async ()=>{
+  const leagues = Object.values(app.leagues);
+  if(!leagues.length){ alert("No leagues yet. Create a league first."); return; }
+  const seeds = leagues.map(buildLeagueSeed);
+  const catalog = b64encode(seeds);
+  const url = `${location.origin}${location.pathname}?join=1&catalog=${catalog}`;
+
+  const modal=document.getElementById("qrModal");
+  const box=document.getElementById("qrBox");
+  const info=document.getElementById("qrInfo");
+  const openBtn=document.getElementById("qrOpenBtn");
+  const title=document.getElementById("qrModalTitle");
+
+  title.textContent = "Join Portal (Multi-League)";
+  info.innerHTML = `
+    <p><strong>Leagues:</strong> ${seeds.map(s=>s.name).join(", ")}</p>
+    <p class="muted">Students scan to choose a league, then submit a join request.</p>
+  `;
+  openBtn.textContent="Open Join Portal";
+  openBtn.onclick = ()=> location.href = url;
+  box.innerHTML="";
+  modal.classList.remove("hidden");
+  try{ await ensureQRCodeLib(); new QRCode(box,{text:url,width:220,height:220}); }
+  catch(e){ box.innerHTML = `<div class="muted" style="color:#8B0A10;text-align:center;">QR script blocked. Use the button.</div>`; }
+};
+document.getElementById("btnCopyPortal").onclick = ()=>{
+  const leagues = Object.values(app.leagues);
+  if(!leagues.length){ alert("No leagues yet. Create a league first."); return; }
+  const seeds = leagues.map(buildLeagueSeed);
+  const catalog = b64encode(seeds);
+  const url = `${location.origin}${location.pathname}?join=1&catalog=${catalog}`;
+  navigator.clipboard.writeText(url).then(()=>alert("Portal link copied!"),()=>alert("Could not copy. Use the QR modal → Open."));
+};
 document.getElementById("closeQRModal").onclick = ()=>{
   document.getElementById("qrModal").classList.add("hidden");
   document.getElementById("qrBox").innerHTML="";
@@ -466,7 +521,7 @@ document.getElementById("closeQRModal").onclick = ()=>{
 /* ============================================================
    APP STORAGE + MODEL (with pending)
 ============================================================ */
-const STORAGE_KEY="CoulsdonLeagueManager_v_optionA_seed_undo";
+const STORAGE_KEY="CoulsdonLeagueManager_v_joinPortal_submitfix";
 let app={leagues:{},current:null};
 
 function loadAll(){
@@ -934,16 +989,40 @@ document.getElementById("fileImportJSON").onchange = (e)=>{
 };
 
 /* ============================================================
-   JOIN VIA DEEP LINK (Option A)
-   ?league=<id>&join=1&seed=<b64_minimal_league>
+   JOIN VIA DEEP LINK
+   - Single league: ?league=<id>&join=1&seed=<b64>
+   - Portal:        ?join=1&catalog=<b64_of_array_of_seeds>
+   (Includes robust submit fix for portal)
 ============================================================ */
+function setJoinMessage(text, kind="info"){
+  const el = document.getElementById("joinMsg");
+  if(!el) return;
+  el.style.color = kind==="error" ? "#8B0A10" : (kind==="ok" ? "#0b6e0b" : "#777");
+  el.textContent = text || "";
+}
+
+function populateJoinDropdown(seeds){
+  const picker = document.getElementById("joinLeaguePicker");
+  const select = document.getElementById("joinLeagueSelect");
+  picker.classList.remove("hidden");
+  select.innerHTML = "";
+  seeds.forEach(seed=>{
+    const o=document.createElement("option");
+    o.value = b64encode(seed);
+    o.textContent = `${seed.name} — ${seed.sport}`;
+    select.appendChild(o);
+  });
+}
+
 function showJoinPanel(L){
   document.getElementById("joinPanel").classList.remove("hidden");
   document.getElementById("joinLeagueName").textContent = `${L.name} — ${L.sport}`;
 }
+
 function addPendingRequest(L, name){
   const t = sanitizeName(name);
   if(!t){ alert("Please enter your name."); return false; }
+  if(t.length > 40){ alert("Name is too long (max 40 characters)."); return false; }
   if(L.players.includes(t)){ alert("That name is already registered in this league."); return false; }
   if(L.pending.some(p=>p.name===t)){ alert("You already have a pending request for this league."); return false; }
   if(L.players.length >= 32){ alert("This league is full (32 players)."); return false; }
@@ -951,40 +1030,96 @@ function addPendingRequest(L, name){
   saveAll();
   return true;
 }
+
 function checkJoinDeepLink(){
   const p=new URLSearchParams(location.search);
-  const id  = p.get("league");
-  const join= p.get("join");
-  const seedParam = p.get("seed"); // for single-league
-
+  const join = p.get("join");
   if(join!=="1") return;
-  if(!id){
-    alert("No league specified. Please ask staff for the correct Join QR.");
+
+  const leagueId  = p.get("league");
+  const seedParam = p.get("seed");        // for single-league
+  const catalog   = p.get("catalog");     // for portal
+
+  // Always show the panel and ensure it's not admin-locked
+  const panel = document.getElementById("joinPanel");
+  if(panel){
+    panel.classList.remove("adminOnly");
+    panel.classList.remove("hidden");
+  }
+  setJoinMessage("");
+
+  // ----- PORTAL FLOW -----
+  if(catalog){
+    const seeds = b64decode(catalog);
+    if(!Array.isArray(seeds) || !seeds.length){
+      setJoinMessage("Join portal link is invalid. Ask staff for a new QR.", "error");
+      return;
+    }
+
+    populateJoinDropdown(seeds);
+    document.getElementById("joinLeagueName").textContent = "Select a league below";
+
+    const btn=document.getElementById("btnJoinLeague");
+    const sel=document.getElementById("joinLeagueSelect");
+    if(btn && !btn._portalWired){
+      btn._portalWired=true;
+      btn.onclick = ()=>{
+        setJoinMessage("");
+        const name = (document.getElementById("joinPlayerName").value || "").trim();
+        if(!name){ setJoinMessage("Please enter your name.", "error"); return; }
+        const encoded = sel.value;
+        const pickedSeed = b64decode(encoded);
+        if(!pickedSeed){ setJoinMessage("Please select a league.", "error"); return; }
+
+        const L = ensureLeagueFromSeed(pickedSeed);
+        if(!L){ setJoinMessage("Could not prepare the league on this device.", "error"); return; }
+
+        app.current = L.id; saveAll(); renderAll();
+        document.getElementById("joinLeagueName").textContent = `${L.name} — ${L.sport}`;
+
+        if(addPendingRequest(L, name)){
+          setJoinMessage("Request submitted. A staff member will approve it soon.", "ok");
+          document.getElementById("joinPlayerName").value = "";
+          renderAll();
+        } else {
+          setJoinMessage("Unable to submit. Check your name isn’t empty/duplicate and the league isn’t full.", "error");
+        }
+      };
+    }
     return;
   }
 
-  // If league exists locally, use it; otherwise try the seed to create it
-  let L = app.leagues[id];
+  // ----- SINGLE-LEAGUE FLOW -----
+  if(!leagueId){
+    setJoinMessage("No league specified. Ask staff for the correct Join QR.", "error");
+    return;
+  }
+
+  let L = app.leagues[leagueId];
   if(!L && seedParam){
     const seed = b64decode(seedParam);
     L = ensureLeagueFromSeed(seed);
   }
   if(!L){
-    alert("This join link is not recognised on this device. Please ask staff for the latest QR for this league.");
+    setJoinMessage("This join link is not recognised on this device. Ask staff for the latest QR for this league.", "error");
     return;
   }
 
-  app.current=id; saveAll(); renderAll(); showJoinPanel(L);
+  app.current=leagueId; saveAll(); renderAll(); showJoinPanel(L);
 
-  const btn=document.getElementById("btnJoinLeague");
+  const btn = document.getElementById("btnJoinLeague");
   if(btn && !btn._singleWired){
     btn._singleWired=true;
     btn.onclick = ()=>{
-      const name=document.getElementById("joinPlayerName").value;
-      if(addPendingRequest(L,name)){
-        alert("Request submitted. A staff member will approve it soon.");
+      setJoinMessage("");
+      const name = (document.getElementById("joinPlayerName").value || "").trim();
+      if(!name){ setJoinMessage("Please enter your name.", "error"); return; }
+      if(addPendingRequest(L, name)){
+        setJoinMessage("Request submitted. A staff member will approve it soon.", "ok");
         document.getElementById("joinPlayerName").value="";
         renderAll();
+      }else{
+        setJoinMessage("Unable to submit. Check your name isn’t empty/duplicate and the league isn’t full.", "error");
       }
     };
   }
