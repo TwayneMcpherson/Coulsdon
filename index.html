@@ -116,8 +116,8 @@ thead th{background:var(--coulsdonRed);color:#fff;}
       </div>
     </div>
 
-    <!-- Create League -->
-    <div class="col adminOnly hidden">
+    <!-- Create League (admin-only, but hotfix will also control visibility) -->
+    <div id="createLeagueCol" class="col adminOnly hidden">
       <strong>Create New League / Tournament</strong>
       <div class="row" style="margin-top:6px;">
         <input id="newLeagueName" type="text" placeholder="Name" style="flex:2;">
@@ -341,7 +341,7 @@ thead th{background:var(--coulsdonRed);color:#fff;}
 
 <script>
 /* ============================================================
-   ADMIN MODE + VIEW TOGGLING
+   ADMIN MODE + VIEW TOGGLING (HOTFIX A included)
 ============================================================ */
 let ADMIN_PASSWORD = "StaffOnly-4429";
 let adminMode = false;
@@ -375,6 +375,16 @@ function applyPlayerView(){
     document.querySelectorAll(".adminOnly").forEach(e=>e.classList.remove("hidden"));
     headers.forEach(e=>e.style.display="table-cell");
     const vn=document.getElementById("viewerNotice"); if(vn) vn.style.display="none";
+  }
+
+  /* HOTFIX A: make sure Create panel reliably appears in Admin Mode */
+  var createBtn = document.getElementById('btnCreate');
+  if (createBtn){
+    var createPanel = createBtn.closest('.col');
+    if (createPanel){
+      createPanel.classList.remove('adminOnly');            // don't rely on this class
+      createPanel.classList.toggle('hidden', !adminMode);   // visible only when admin
+    }
   }
 
   // Ensure Join Panel is NEVER admin‑locked
@@ -439,7 +449,7 @@ document.getElementById("btnCopyJoin").onclick = ()=>{
 /* ============================================================
    APP STORAGE + MODEL (with pending)
 ============================================================ */
-const STORAGE_KEY="CoulsdonLeagueManager_v_minQR_approvals_undo";
+const STORAGE_KEY="CoulsdonLeagueManager_v_minQR_approvals_undo_hotfix";
 let app={leagues:{},current:null};
 
 function loadAll(){
@@ -940,7 +950,7 @@ document.getElementById("fileImportJSON").onchange = (e)=>{
 };
 
 /* ============================================================
-   JOIN VIA DEEP LINK (?league=<id>&join=1) -> PENDING
+   JOIN VIA DEEP LINK (?league=<id>&join=1) -> PENDING (HOTFIX B)
 ============================================================ */
 function showJoinPanel(L){
   document.getElementById("joinPanel").classList.remove("hidden");
@@ -960,18 +970,36 @@ function checkJoinDeepLink(){
   const p=new URLSearchParams(location.search);
   const id=p.get("league"), j=p.get("join");
   if(!id || j!=="1") return;
-  const L=app.leagues[id]; if(!L) return;
-  app.current=id; saveAll(); renderAll(); showJoinPanel(L);
+
+  const L=app.leagues[id];
+  if(!L){
+    alert("This join link is not recognised on this device. Please ask staff for the latest QR for this league.");
+    return;
+  }
+
+  app.current=id; saveAll(); renderAll();
+
+  // Force show Join Panel and make sure it's not admin-locked
+  const joinPanel = document.getElementById("joinPanel");
+  if (joinPanel){
+    joinPanel.classList.remove("adminOnly");
+    joinPanel.classList.remove("hidden");
+  }
+
+  showJoinPanel(L);
+
   const btn=document.getElementById("btnJoinLeague");
-  if(btn._wired) return; btn._wired=true;
-  btn.onclick = ()=>{
-    const name=document.getElementById("joinPlayerName").value;
-    if(addPendingRequest(L,name)){
-      alert("Request submitted. A staff member will approve it soon.");
-      document.getElementById("joinPlayerName").value="";
-      renderAll();
-    }
-  };
+  if(btn && !btn._wired){
+    btn._wired=true;
+    btn.onclick = ()=>{
+      const name=document.getElementById("joinPlayerName").value;
+      if(addPendingRequest(L,name)){
+        alert("Request submitted. A staff member will approve it soon.");
+        document.getElementById("joinPlayerName").value="";
+        renderAll();
+      }
+    };
+  }
 }
 
 /* ============================================================
