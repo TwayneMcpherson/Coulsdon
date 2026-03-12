@@ -376,6 +376,10 @@ function applyPlayerView(){
     headers.forEach(e=>e.style.display="table-cell");
     const vn=document.getElementById("viewerNotice"); if(vn) vn.style.display="none";
   }
+
+  // Ensure Join Panel is NEVER admin‑locked
+  const joinPanel = document.getElementById("joinPanel");
+  if (joinPanel) joinPanel.classList.remove("adminOnly");
 }
 
 /* ============================================================
@@ -885,35 +889,6 @@ document.getElementById("btnClearFifa").onclick = ()=>{
   const L=currentLeague(); if(!L||L.sport!=="FIFA") return;
   if(!confirm("Clear FIFA fixtures/results?")) return;
   L.fixtures=[]; L.results=[]; saveAll(); renderAll();
-};
-
-/* ============================================================
-   PLAYERS + LEAGUES
-============================================================ */
-document.getElementById("btnAddPlayer").onclick = ()=>{
-  const L=currentLeague(); if(!L) return alert("Load or create a league first.");
-  const name=document.getElementById("playerName").value.trim();
-  if(!name) return;
-  if(L.players.includes(name)) return alert("Player exists.");
-  if(L.players.length>=32) return alert("Max 32 players.");
-  L.players.push(name); L.fixtures=[]; L.results=[];
-  saveAll(); document.getElementById("playerName").value=""; renderAll();
-};
-document.getElementById("btnClearPlayers").onclick = ()=>{
-  const L=currentLeague(); if(!L) return;
-  if(!confirm("Clear all players? This resets fixtures/results.")) return;
-  L.players=[]; L.fixtures=[]; L.results=[]; L.pending=[]; saveAll(); renderAll();
-};
-
-document.getElementById("btnLoad").onclick = ()=>{
-  app.current=document.getElementById("leagueSelect").value; saveAll(); renderAll();
-};
-document.getElementById("btnCreate").onclick = ()=>{
-  const name=document.getElementById("newLeagueName").value.trim();
-  const sport=document.getElementById("newLeagueSport").value;
-  if(!name) return alert("Enter a league name.");
-  const opt={}; if(sport==="TableTennis") opt.ttRounds=document.getElementById("ttRounds").value;
-  createLeague(name,sport,opt); document.getElementById("newLeagueName").value=""; renderAll();
 };
 
 /* ============================================================
