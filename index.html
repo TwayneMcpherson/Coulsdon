@@ -69,11 +69,10 @@ thead th{background:var(--coulsdonRed);color:#fff;}
   display:flex;align-items:center;justify-content:center;z-index:9999;
 }
 .modal{
-  background:#fff;width:90%;max-width:420px;padding:20px;border-radius:12px;position:relative;
+  background:#fff;width:90%;max-width:460px;padding:20px;border-radius:12px;position:relative;
 }
 .close-modal{position:absolute;right:10px;top:10px;color:var(--danger);cursor:pointer;font-weight:700;}
-
-/* Safety: when modal is hidden, never intercept clicks */
+/* When modal is hidden, never intercept clicks */
 .modal-bg.hidden{ display:none !important; pointer-events:none !important; opacity:0 !important; }
 </style>
 </head>
@@ -90,14 +89,14 @@ thead th{background:var(--coulsdonRed);color:#fff;}
   </div>
 </div>
 
-<!-- QR MODAL (LEAGUE JOIN ONLY) -->
+<!-- QR MODAL (LEAGUE JOIN + JOIN PORTAL) -->
 <div id="qrModal" class="modal-bg hidden">
   <div class="modal">
     <span id="closeQRModal" class="close-modal">X</span>
-    <h3 id="qrModalTitle">League QR (Join)</h3>
+    <h3 id="qrModalTitle">QR</h3>
     <div id="qrInfo"></div>
-    <div id="qrBox" style="width:200px;height:200px;margin:10px auto;"></div>
-    <button id="qrOpenBtn" class="btn" style="width:100%;">Open League Join Page</button>
+    <div id="qrBox" style="width:220px;height:220px;margin:12px auto;"></div>
+    <button id="qrOpenBtn" class="btn" style="width:100%;">Open</button>
   </div>
 </div>
 
@@ -114,13 +113,18 @@ thead th{background:var(--coulsdonRed);color:#fff;}
         <button id="btnExportJSON" class="btn-ghost adminOnly hidden">Backup JSON</button>
         <label for="fileImportJSON" class="btn-ghost adminOnly hidden">Import</label>
         <input id="fileImportJSON" type="file" accept="application/json" class="hidden"/>
-        <!-- League-level join QR and quick copy link -->
+
+        <!-- League-level Join QR -->
         <button id="btnLeagueQR" class="btn-ghost">League QR (Join)</button>
         <button id="btnCopyJoin" class="btn-ghost">Copy Join Link</button>
+
+        <!-- NEW: Join Portal (multi-league) -->
+        <button id="btnPortalQR" class="btn-ghost">Join Portal QR</button>
+        <button id="btnCopyPortal" class="btn-ghost">Copy Portal Link</button>
       </div>
     </div>
 
-    <!-- Create League (admin-only, with robust visibility control) -->
+    <!-- Create League (admin-only; robust visibility) -->
     <div id="createLeagueCol" class="col adminOnly hidden">
       <strong>Create New League / Tournament</strong>
       <div class="row" style="margin-top:6px;">
@@ -150,10 +154,16 @@ thead th{background:var(--coulsdonRed);color:#fff;}
   </div>
 </div>
 
-<!-- JOIN PANEL (appears when ?league=<id>&join=1) -->
+<!-- JOIN PANEL (appears when ?league=<id>&join=1 or ?catalog=...) -->
 <div id="joinPanel" class="card hidden">
   <h2>Join This League</h2>
-  <p class="muted" id="joinLeagueName">—</p>
+  <!-- Only shown when a catalog is supplied -->
+  <div id="joinLeaguePicker" class="row hidden" style="margin-top:8px;">
+    <select id="joinLeagueSelect" style="flex:2;"></select>
+  </div>
+
+  <p class="muted" id="joinLeagueName" style="margin:6px 0;">—</p>
+
   <div class="row" style="margin-top:8px;">
     <input id="joinPlayerName" type="text" placeholder="Enter your name" style="flex:2;">
     <button id="btnJoinLeague" class="btn" style="flex:1;">Request to Join</button>
@@ -345,7 +355,7 @@ thead th{background:var(--coulsdonRed);color:#fff;}
 
 <script>
 /* ============================================================
-   ADMIN MODE + VIEW TOGGLING (includes robust Create panel fix)
+   ADMIN MODE + VIEW TOGGLING
 ============================================================ */
 let ADMIN_PASSWORD = "StaffOnly-4429";
 let adminMode = false;
@@ -371,7 +381,6 @@ document.getElementById("adminModeBtn").onclick = ()=>{
 
 function applyPlayerView(){
   const headers = document.querySelectorAll(".adminOnlyHeader");
-
   if(!adminMode){
     document.querySelectorAll(".adminOnly").forEach(e=>e.classList.add("hidden"));
     headers.forEach(e=>e.style.display="none");
@@ -385,8 +394,8 @@ function applyPlayerView(){
   /* Guarantee Create panel visibility & clickability in Admin Mode */
   const createCol = document.getElementById('createLeagueCol');
   if (createCol){
-    createCol.classList.remove('adminOnly');                 // never gate by class again
-    createCol.classList.toggle('hidden', !adminMode);        // visible only in admin
+    createCol.classList.remove('adminOnly');
+    createCol.classList.toggle('hidden', !adminMode);
     createCol.style.pointerEvents = adminMode ? 'auto' : 'none';
     createCol.style.position = 'relative';
     createCol.style.zIndex = adminMode ? '2' : '0';
@@ -398,7 +407,7 @@ function applyPlayerView(){
 }
 
 /* ============================================================
-   QR LIB LOADER (with fallback) + LEAGUE JOIN QR
+   QR LIB LOADER (with fallback) + JOIN QR/PORTAL
 ============================================================ */
 function ensureQRCodeLib(){
   if(window.QRCode) return Promise.resolve();
@@ -413,48 +422,101 @@ function ensureQRCodeLib(){
     .catch(()=>load('https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js'));
 }
 
+// JSON <-> base64 helpers for seeds/catalog
+function b64encode(obj){ return btoa(unescape(encodeURIComponent(JSON.stringify(obj)))); }
+function b64decode(str){ try{return JSON.parse(decodeURIComponent(escape(atob(str))))}catch(e){return null;} }
+
+// League seed (minimal)
+function buildLeagueSeed(L){ return {id:L.id, name:L.name, sport:L.sport, options:L.options||{}}; }
+
+// Ensure a league exists locally from a seed
+function ensureLeagueFromSeed(seed){
+  if(!seed || !seed.id) return null;
+  if(!app.leagues[seed.id]){
+    app.leagues[seed.id] = {
+      id:seed.id, name:seed.name, sport:seed.sport,
+      options:seed.options||{}, players:[], standings:{}, fixtures:[], results:[], pending:[]
+    };
+    saveAll();
+  }
+  return app.leagues[seed.id];
+}
+
+/* ----- Single-league Join QR (with seed) ----- */
 document.getElementById("btnLeagueQR").onclick = async ()=>{
   const L=currentLeague(); if(!L){ alert("Load or create a league first."); return; }
-  const url = `${location.origin}${location.pathname}?league=${L.id}&join=1`;
+  const seed = b64encode(buildLeagueSeed(L));
+  const url  = `${location.origin}${location.pathname}?league=${L.id}&join=1&seed=${seed}`;
+
   const modal=document.getElementById("qrModal");
   const box=document.getElementById("qrBox");
   const info=document.getElementById("qrInfo");
   const openBtn=document.getElementById("qrOpenBtn");
+  const title=document.getElementById("qrModalTitle");
 
+  title.textContent = "League QR (Join)";
   info.innerHTML = `
     <p><strong>League:</strong> ${L.name}</p>
     <p><strong>Mode:</strong> Join this league</p>
     <p class="muted">Students scan to open a join page and add their name to this league.</p>
   `;
+  openBtn.textContent="Open League Join Page";
   openBtn.onclick = ()=> location.href = url;
   box.innerHTML="";
   modal.classList.remove("hidden");
-  try{
-    await ensureQRCodeLib();
-    new QRCode(box,{text:url,width:200,height:200});
-  }catch(e){
-    box.innerHTML = `<div class="muted" style="color:#8B0A10;text-align:center;">QR script blocked. Use the button.</div>`;
-    console.error(e);
-  }
+  try{ await ensureQRCodeLib(); new QRCode(box,{text:url,width:220,height:220}); }
+  catch(e){ box.innerHTML = `<div class="muted" style="color:#8B0A10;text-align:center;">QR script blocked. Use the button.</div>`; }
+};
+document.getElementById("btnCopyJoin").onclick = ()=>{
+  const L=currentLeague(); if(!L){ alert("Load or create a league first."); return; }
+  const seed = b64encode(buildLeagueSeed(L));
+  const url  = `${location.origin}${location.pathname}?league=${L.id}&join=1&seed=${seed}`;
+  navigator.clipboard.writeText(url).then(()=>alert("Join link copied!"),()=>alert("Could not copy. Use the QR modal → Open."));
+};
+
+/* ----- NEW: Join Portal QR (multi-league) ----- */
+document.getElementById("btnPortalQR").onclick = async ()=>{
+  const leagues = Object.values(app.leagues);
+  if(!leagues.length){ alert("No leagues yet. Create a league first."); return; }
+  const seeds = leagues.map(buildLeagueSeed);
+  const catalog = b64encode(seeds);
+  const url = `${location.origin}${location.pathname}?join=1&catalog=${catalog}`;
+
+  const modal=document.getElementById("qrModal");
+  const box=document.getElementById("qrBox");
+  const info=document.getElementById("qrInfo");
+  const openBtn=document.getElementById("qrOpenBtn");
+  const title=document.getElementById("qrModalTitle");
+
+  title.textContent = "Join Portal (Multi-League)";
+  info.innerHTML = `
+    <p><strong>Leagues:</strong> ${seeds.map(s=>s.name).join(", ")}</p>
+    <p class="muted">Students scan to choose a league, then submit a join request.</p>
+  `;
+  openBtn.textContent="Open Join Portal";
+  openBtn.onclick = ()=> location.href = url;
+  box.innerHTML="";
+  document.getElementById("qrModal").classList.remove("hidden");
+  try{ await ensureQRCodeLib(); new QRCode(box,{text:url,width:220,height:220}); }
+  catch(e){ box.innerHTML = `<div class="muted" style="color:#8B0A10;text-align:center;">QR script blocked. Use the button.</div>`; }
+};
+document.getElementById("btnCopyPortal").onclick = ()=>{
+  const leagues = Object.values(app.leagues);
+  if(!leagues.length){ alert("No leagues yet. Create a league first."); return; }
+  const seeds = leagues.map(buildLeagueSeed);
+  const catalog = b64encode(seeds);
+  const url = `${location.origin}${location.pathname}?join=1&catalog=${catalog}`;
+  navigator.clipboard.writeText(url).then(()=>alert("Portal link copied!"),()=>alert("Could not copy. Use the QR modal → Open."));
 };
 document.getElementById("closeQRModal").onclick = ()=>{
   document.getElementById("qrModal").classList.add("hidden");
   document.getElementById("qrBox").innerHTML="";
 };
 
-document.getElementById("btnCopyJoin").onclick = ()=>{
-  const L=currentLeague(); if(!L){ alert("Load or create a league first."); return; }
-  const url = `${location.origin}${location.pathname}?league=${L.id}&join=1`;
-  navigator.clipboard.writeText(url).then(
-    ()=>alert("Join link copied!"),
-    ()=>alert("Could not copy. Use League QR (Join) → Open.")
-  );
-};
-
 /* ============================================================
    APP STORAGE + MODEL (with pending)
 ============================================================ */
-const STORAGE_KEY="CoulsdonLeagueManager_v_minQR_approvals_undo_hotfix2";
+const STORAGE_KEY="CoulsdonLeagueManager_v_minQR_joinPortal_seed_undo";
 let app={leagues:{},current:null};
 
 function loadAll(){
@@ -463,10 +525,7 @@ function loadAll(){
     if(raw){ app=JSON.parse(raw); }
     if(!app.leagues) app.leagues={};
   }catch(e){ app={leagues:{},current:null}; }
-  // migrate: ensure 'pending' array
-  Object.values(app.leagues).forEach(L=>{
-    if(!L.pending) L.pending=[];
-  });
+  Object.values(app.leagues).forEach(L=>{ if(!L.pending) L.pending=[]; });
 }
 function saveAll(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(app)); }
 loadAll();
@@ -750,11 +809,10 @@ function saveFifaFixture(id){
    RESULTS LOG + UNDO
 ============================================================ */
 function restoreFixtureFromResult(L, r){
-  if(!r || !r.fixtureId) return;                      // only fixtures can be restored
-  if(L.fixtures.some(f=>f.id===r.fixtureId)) return;  // no duplicates
+  if(!r || !r.fixtureId) return;
+  if(L.fixtures.some(f=>f.id===r.fixtureId)) return;
   if(r.sport==="Pool"){
-    const A = r.A || r.winner;
-    const B = r.B || r.loser;
+    const A = r.A || r.winner, B = r.B || r.loser;
     if(!A || !B) return;
     L.fixtures.unshift({ id:r.fixtureId, type:"PL", A, B, round: r.round ?? "?" });
   }else if(r.sport==="TableTennis"){
@@ -770,9 +828,7 @@ function undoResultAt(index){
   if(index<0 || index>=L.results.length) return;
   const r=L.results[index];
   if(!confirm(`Undo this result?\n\n${r.sport} – ${r.date||''}`)) return;
-  // remove result
   L.results.splice(index,1);
-  // try to restore original fixture
   restoreFixtureFromResult(L, r);
   saveAll(); renderAll();
 }
@@ -781,7 +837,6 @@ document.getElementById("btnUndoLast").onclick = ()=>{
   if(!L.results.length){ alert("No results to undo."); return; }
   undoResultAt(L.results.length - 1);
 };
-
 function renderResultsLog(){
   const L=currentLeague(); if(!L) return;
   const tb=document.querySelector("#resultsTable tbody");
@@ -812,33 +867,7 @@ function renderResultsLog(){
 }
 
 /* ============================================================
-   STANDINGS RENDER
-============================================================ */
-function renderStandings(){
-  const L=currentLeague(); if(!L) return; recomputeStandings(L);
-  const tb=document.querySelector("#tableStandings tbody"); tb.innerHTML="";
-  document.querySelectorAll(".colDraw").forEach(h=>h.style.display = (L.sport==='FIFA') ? 'table-cell' : 'none');
-  document.querySelectorAll(".colGD").forEach(h=>h.style.display = (L.sport==='Pool') ? 'none' : 'table-cell');
-
-  const arr=Object.entries(L.standings)
-    .sort((a,b)=>b[1].Pts - a[1].Pts || b[1].GD - a[1].GD || b[1].GF - a[1].GF);
-  arr.forEach(([n,s],i)=>{
-    tb.innerHTML+=`
-      <tr>
-        <td>${i+1}</td><td style="text-align:left;">${n}</td>
-        <td>${s.P}</td><td>${s.W}</td>
-        <td style="display:${L.sport==='FIFA'?'table-cell':'none'}">${s.D}</td>
-        <td>${s.L}</td>
-        <td style="display:${L.sport==='Pool'?'none':'table-cell'}">${s.GF}</td>
-        <td style="display:${L.sport==='Pool'?'none':'table-cell'}">${s.GA}</td>
-        <td style="display:${L.sport==='Pool'?'none':'table-cell'}">${s.GD}</td>
-        <td><strong>${s.Pts}</strong></td>
-      </tr>`;
-  });
-}
-
-/* ============================================================
-   AD-HOC ENTRIES (Pool & FIFA)
+   AD-HOC ENTRIES
 ============================================================ */
 document.getElementById("btnAddPoolResult").onclick = ()=>{
   const L=currentLeague(); if(!L||L.sport!=="Pool") return;
@@ -955,7 +984,9 @@ document.getElementById("fileImportJSON").onchange = (e)=>{
 };
 
 /* ============================================================
-   JOIN VIA DEEP LINK (?league=<id>&join=1) -> PENDING (Hotfix)
+   JOIN VIA DEEP LINK
+   - Single league: ?league=<id>&join=1&seed=<b64>
+   - Portal:        ?join=1&catalog=<b64_of_array_of_seeds>
 ============================================================ */
 function showJoinPanel(L){
   document.getElementById("joinPanel").classList.remove("hidden");
@@ -971,31 +1002,84 @@ function addPendingRequest(L, name){
   saveAll();
   return true;
 }
+function populateJoinDropdown(seeds){
+  const picker = document.getElementById("joinLeaguePicker");
+  const select = document.getElementById("joinLeagueSelect");
+  picker.classList.remove("hidden");
+  select.innerHTML = "";
+  seeds.forEach(seed=>{
+    const o=document.createElement("option");
+    o.value = b64encode(seed);
+    o.textContent = `${seed.name} — ${seed.sport}`;
+    select.appendChild(o);
+  });
+}
+
+// Handles both single-league and portal joins
 function checkJoinDeepLink(){
   const p=new URLSearchParams(location.search);
-  const id=p.get("league"), j=p.get("join");
-  if(!id || j!=="1") return;
+  const id  = p.get("league");
+  const join= p.get("join");
+  const seedParam = p.get("seed");       // for single-league
+  const catalog   = p.get("catalog");    // for portal
 
-  const L=app.leagues[id];
+  if(join!=="1") return;
+
+  // Portal flow
+  if(catalog){
+    const seeds = b64decode(catalog);
+    if(!Array.isArray(seeds) || !seeds.length){
+      alert("Join portal link is invalid. Please ask staff for a new QR.");
+      return;
+    }
+    // Render dropdown and join panel
+    document.getElementById("joinPanel").classList.remove("hidden");
+    populateJoinDropdown(seeds);
+    document.getElementById("joinLeagueName").textContent = "Select a league below";
+    const btn=document.getElementById("btnJoinLeague");
+    if(btn && !btn._portalWired){
+      btn._portalWired=true;
+      btn.onclick = ()=>{
+        const name = document.getElementById("joinPlayerName").value;
+        const selected = document.getElementById("joinLeagueSelect").value;
+        const pickedSeed = b64decode(selected);
+        if(!pickedSeed){ alert("Please select a league."); return; }
+        const L = ensureLeagueFromSeed(pickedSeed);
+        if(!L){ alert("Could not prepare the league on this device."); return; }
+        app.current = L.id; saveAll(); renderAll(); showJoinPanel(L);
+        if(addPendingRequest(L, name)){
+          alert("Request submitted. A staff member will approve it soon.");
+          document.getElementById("joinPlayerName").value="";
+          renderAll();
+        }
+      };
+    }
+    return;
+  }
+
+  // Single-league flow (id + optional seed)
+  if(!id){
+    // Just in case someone opened ?join=1 without any context
+    alert("No league specified. Please ask staff for the Join Portal QR.");
+    return;
+  }
+
+  // If league exists locally, use it; otherwise try the seed to create it
+  let L = app.leagues[id];
+  if(!L && seedParam){
+    const seed = b64decode(seedParam);
+    L = ensureLeagueFromSeed(seed);
+  }
   if(!L){
     alert("This join link is not recognised on this device. Please ask staff for the latest QR for this league.");
     return;
   }
 
-  app.current=id; saveAll(); renderAll();
-
-  // Force show Join Panel and make sure it's not admin-locked
-  const joinPanel = document.getElementById("joinPanel");
-  if (joinPanel){
-    joinPanel.classList.remove("adminOnly");
-    joinPanel.classList.remove("hidden");
-  }
-
-  showJoinPanel(L);
+  app.current=id; saveAll(); renderAll(); showJoinPanel(L);
 
   const btn=document.getElementById("btnJoinLeague");
-  if(btn && !btn._wired){
-    btn._wired=true;
+  if(btn && !btn._singleWired){
+    btn._singleWired=true;
     btn.onclick = ()=>{
       const name=document.getElementById("joinPlayerName").value;
       if(addPendingRequest(L,name)){
@@ -1016,8 +1100,6 @@ document.getElementById("btnLoad").onclick = ()=>{
   app.current = sel.value; saveAll(); renderAll();
 };
 
-/* Belt‑and‑braces: ensure the Create button is bound even if another
-   script error occurred earlier. */
 (function ensureCreateHandler(){
   const btn = document.getElementById("btnCreate");
   if(!btn) return;
@@ -1037,7 +1119,6 @@ document.getElementById("btnLoad").onclick = ()=>{
       renderAll();
     };
   }
-
   // Enter to submit from name field
   const nameInput = document.getElementById("newLeagueName");
   if(nameInput && !nameInput._enterBound){
