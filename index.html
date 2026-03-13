@@ -192,6 +192,16 @@ thead th{background:var(--coulsdonRed);color:#fff;}
     <div class="muted" style="margin-top:4px;">Minimum 8, maximum 32 players.</div>
     <ul id="playerList" style="margin-top:6px;"></ul>
 
+    <!-- NEW: Student/kiosk mini‑join (only in Player View) -->
+    <div id="publicJoinWrap" class="" style="margin-top:10px;">
+      <h3 class="muted" style="margin:0 0 6px;">Join this league</h3>
+      <div class="row">
+        <input id="publicJoinName" type="text" placeholder="Enter your name" style="flex:2;">
+        <button id="btnPublicJoin" class="btn" style="flex:1;">Request to Join</button>
+      </div>
+      <div id="publicJoinMsg" class="muted" style="margin-top:6px;"></div>
+    </div>
+
     <!-- PENDING APPROVALS -->
     <div id="pendingCard" class="adminOnly hidden" style="margin-top:14px;">
       <h3>Pending Approvals</h3>
@@ -409,6 +419,9 @@ function applyPlayerView(){
   // Ensure Join Panel is NEVER admin‑locked
   const joinPanel = document.getElementById("joinPanel");
   if (joinPanel) joinPanel.classList.remove("adminOnly");
+
+  // NEW: show/hide the public mini‑join area
+  updatePublicJoinVisibility();
 }
 
 /* ============================================================
@@ -521,7 +534,7 @@ document.getElementById("closeQRModal").onclick = ()=>{
 /* ============================================================
    APP STORAGE + MODEL (with pending)
 ============================================================ */
-const STORAGE_KEY="CoulsdonLeagueManager_v_joinPortal_submitfix";
+const STORAGE_KEY="CoulsdonLeagueManager_v_joinPortal_submitfix_minijoin";
 let app={leagues:{},current:null};
 
 function loadAll(){
@@ -1000,7 +1013,6 @@ function setJoinMessage(text, kind="info"){
   el.style.color = kind==="error" ? "#8B0A10" : (kind==="ok" ? "#0b6e0b" : "#777");
   el.textContent = text || "";
 }
-
 function populateJoinDropdown(seeds){
   const picker = document.getElementById("joinLeaguePicker");
   const select = document.getElementById("joinLeagueSelect");
@@ -1013,12 +1025,10 @@ function populateJoinDropdown(seeds){
     select.appendChild(o);
   });
 }
-
 function showJoinPanel(L){
   document.getElementById("joinPanel").classList.remove("hidden");
   document.getElementById("joinLeagueName").textContent = `${L.name} — ${L.sport}`;
 }
-
 function addPendingRequest(L, name){
   const t = sanitizeName(name);
   if(!t){ alert("Please enter your name."); return false; }
@@ -1030,7 +1040,6 @@ function addPendingRequest(L, name){
   saveAll();
   return true;
 }
-
 function checkJoinDeepLink(){
   const p=new URLSearchParams(location.search);
   const join = p.get("join");
@@ -1126,6 +1135,43 @@ function checkJoinDeepLink(){
 }
 
 /* ============================================================
+   PUBLIC MINI‑JOIN (Players card)
+============================================================ */
+function setPublicJoinMsg(text, kind="info"){
+  const el = document.getElementById("publicJoinMsg");
+  if(!el) return;
+  el.style.color = kind==="error" ? "#8B0A10" : (kind==="ok" ? "#0b6e0b" : "#777");
+  el.textContent = text || "";
+}
+function updatePublicJoinVisibility(){
+  const wrap = document.getElementById("publicJoinWrap");
+  if(!wrap) return;
+  wrap.style.display = (!adminMode && currentLeague()) ? "" : "none";
+}
+// Bind once
+(function wirePublicJoin(){
+  const btn = document.getElementById("btnPublicJoin");
+  if(!btn) return;
+  if(btn._wired) return; btn._wired = true;
+
+  btn.onclick = ()=>{
+    setPublicJoinMsg("");
+    const L = currentLeague();
+    if(!L){ setPublicJoinMsg("No league selected. Ask staff to load a league.", "error"); return; }
+    const name = (document.getElementById("publicJoinName").value || "").trim();
+    if(!name){ setPublicJoinMsg("Please enter your name.", "error"); return; }
+
+    if(addPendingRequest(L, name)){
+      setPublicJoinMsg("Request submitted. A staff member will approve it soon.", "ok");
+      document.getElementById("publicJoinName").value = "";
+      renderAll();
+    }else{
+      setPublicJoinMsg("Unable to submit. Check your name isn’t empty/duplicate and the league isn’t full.", "error");
+    }
+  };
+})();
+
+/* ============================================================
    LOAD / CREATE (robust binding so Create always works)
 ============================================================ */
 document.getElementById("btnLoad").onclick = ()=>{
@@ -1170,6 +1216,7 @@ function renderAll(){
   renderLeagueSelect(); renderSummary(); renderPlayers(); renderPendingApprovals();
   renderPoolFixtures(); renderTTFixtures(); renderFifaFixtures();
   renderStandings(); renderResultsLog(); applyPlayerView();
+  // (applyPlayerView also calls updatePublicJoinVisibility)
 }
 renderAll(); checkJoinDeepLink();
 
