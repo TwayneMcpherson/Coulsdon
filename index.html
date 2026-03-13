@@ -74,6 +74,14 @@ thead th{background:var(--coulsdonRed);color:#fff;}
 .close-modal{position:absolute;right:10px;top:10px;color:var(--danger);cursor:pointer;font-weight:700;}
 /* When modal is hidden, never intercept clicks */
 .modal-bg.hidden{ display:none !important; pointer-events:none !important; opacity:0 !important; }
+
+/* ============================================================
+   EXTRA SAFETY: Admin-only controls cannot be clicked in Player View
+============================================================ */
+body:not(.admin) .adminOnly,
+body:not(.admin) .adminOnlyHeader{ pointer-events:none !important; }
+body.admin .adminOnly,
+body.admin .adminOnlyHeader{ pointer-events:auto !important; }
 </style>
 </head>
 
@@ -108,7 +116,7 @@ thead th{background:var(--coulsdonRed);color:#fff;}
       <select id="leagueSelect" style="width:100%;margin-top:6px;"></select>
       <div style="margin-top:8px;">
         <button id="btnLoad" class="btn-ghost">Load</button>
-        <button id="btnExportPrint" class="btn">Export Results (Print)</button>
+        <button id="btnExportPrint" class="btn adminOnly hidden">Export Results (Print)</button>
         <button id="btnExportCSV" class="btn-ghost adminOnly hidden">Export CSV</button>
         <button id="btnExportJSON" class="btn-ghost adminOnly hidden">Backup JSON</button>
         <label for="fileImportJSON" class="btn-ghost adminOnly hidden">Import</label>
@@ -370,10 +378,27 @@ thead th{background:var(--coulsdonRed);color:#fff;}
 
 <script>
 /* ============================================================
-   ADMIN MODE + VIEW TOGGLING
+   ADMIN MODE + VIEW TOGGLING + HARD GUARD
 ============================================================ */
 let ADMIN_PASSWORD = "StaffOnly-4429";
 let adminMode = false;
+
+// HARD GATE for staff-only operations
+function requireAdmin(options = { promptIfOff:false }) {
+  if (adminMode) return true;
+  alert("Staff only. Please enter Admin Mode to perform this action.");
+  if (options.promptIfOff) {
+    const pw = prompt("Enter admin password:");
+    if (pw === ADMIN_PASSWORD) {
+      adminMode = true;
+      document.getElementById("adminBanner").style.display="block";
+      document.getElementById("adminModeBtn").textContent="Exit Admin Mode";
+      applyPlayerView();
+      return true;
+    }
+  }
+  return false;
+}
 
 document.getElementById("adminModeBtn").onclick = ()=>{
   if(adminMode){
@@ -420,7 +445,10 @@ function applyPlayerView(){
   const joinPanel = document.getElementById("joinPanel");
   if (joinPanel) joinPanel.classList.remove("adminOnly");
 
-  // NEW: show/hide the public mini‑join area
+  // Reflect mode on <body> for CSS safety rules
+  document.body.classList.toggle('admin', !!adminMode);
+
+  // Show/hide the public mini‑join area
   updatePublicJoinVisibility();
 }
 
@@ -534,7 +562,7 @@ document.getElementById("closeQRModal").onclick = ()=>{
 /* ============================================================
    APP STORAGE + MODEL (with pending)
 ============================================================ */
-const STORAGE_KEY="CoulsdonLeagueManager_v_joinPortal_submitfix_minijoin";
+const STORAGE_KEY="CoulsdonLeagueManager_v_adminGuard_minijoin_portal";
 let app={leagues:{},current:null};
 
 function loadAll(){
@@ -653,12 +681,13 @@ function renderPlayers(){
   });
 }
 function removePlayer(name){
+  if (!requireAdmin()) return;
   const L=currentLeague(); if(!L) return;
   if(!confirm(`Remove ${name}?`)) return;
   L.players=L.players.filter(x=>x!==name); L.fixtures=[]; L.results=[]; saveAll(); renderAll();
 }
 
-/* ----- Pending Approvals ----- */
+/* ----- Pending Approvals (with hard guards) ----- */
 function sanitizeName(name){ return (name||"").replace(/\s+/g,' ').trim(); }
 
 function renderPendingApprovals(){
@@ -685,6 +714,7 @@ function renderPendingApprovals(){
   });
 }
 function approvePending(name){
+  if (!requireAdmin()) return;
   const L = currentLeague(); if(!L) return;
   const t = sanitizeName(name);
   if(L.players.includes(t)){
@@ -698,12 +728,14 @@ function approvePending(name){
   saveAll(); renderAll();
 }
 function rejectPending(name){
+  if (!requireAdmin()) return;
   const L = currentLeague(); if(!L) return;
   const t = sanitizeName(name);
   L.pending = L.pending.filter(x=>x.name!==t);
   saveAll(); renderAll();
 }
 document.getElementById('btnApproveAll').onclick = ()=>{
+  if (!requireAdmin()) return;
   const L = currentLeague(); if(!L) return;
   if(!L.pending?.length){ alert("No pending requests."); return; }
   for(const req of [...L.pending]){
@@ -735,6 +767,7 @@ function renderPoolFixtures(){
   });
 }
 function savePoolFixture(id){
+  if (!requireAdmin()) return;
   const L=currentLeague(); if(!L) return;
   const f=L.fixtures.find(x=>x.id===id);
   const winner=document.getElementById(`plWin_${id}`).value;
@@ -744,7 +777,7 @@ function savePoolFixture(id){
     sport:"Pool",
     fixtureId:id,
     winner, loser, mode,
-    A: f.A, B: f.B, round: f.round,             // for UNDO restore
+    A: f.A, B: f.B, round: f.round,
     date:new Date().toLocaleString()
   });
   L.fixtures=L.fixtures.filter(x=>x.id!==id); saveAll(); renderAll();
@@ -768,6 +801,7 @@ function renderTTFixtures(){
   });
 }
 function saveTTFixture(id){
+  if (!requireAdmin()) return;
   const L=currentLeague(); if(!L) return;
   const f=L.fixtures.find(x=>x.id===id);
   const h=parseInt(document.getElementById(`ttH_${id}`).value,10);
@@ -778,7 +812,7 @@ function saveTTFixture(id){
     sport:"TableTennis",
     fixtureId:id,
     home:f.home, away:f.away, homePts:h, awayPts:a,
-    round: f.round,                               // for UNDO restore
+    round: f.round,
     date:new Date().toLocaleString()
   });
   L.fixtures=L.fixtures.filter(x=>x.id!==id); saveAll(); renderAll();
@@ -806,6 +840,7 @@ function renderFifaFixtures(){
   });
 }
 function saveFifaFixture(id){
+  if (!requireAdmin()) return;
   const L=currentLeague(); if(!L) return;
   const f=L.fixtures.find(x=>x.id===id);
   const ga=parseInt(document.getElementById(`ffGA_${id}`).value,10);
@@ -817,7 +852,7 @@ function saveFifaFixture(id){
     sport:"FIFA",
     fixtureId:id,
     A:f.A, B:f.B, goalsA:ga, goalsB:gb, teamA:ta, teamB:tb,
-    round: f.round,                                 // for UNDO restore
+    round: f.round,
     date:new Date().toLocaleString()
   });
   L.fixtures=L.fixtures.filter(x=>x.id!==id); saveAll(); renderAll();
@@ -842,6 +877,7 @@ function restoreFixtureFromResult(L, r){
   }
 }
 function undoResultAt(index){
+  if (!requireAdmin()) return;
   const L=currentLeague(); if(!L) return;
   if(index<0 || index>=L.results.length) return;
   const r=L.results[index];
@@ -851,6 +887,7 @@ function undoResultAt(index){
   saveAll(); renderAll();
 }
 document.getElementById("btnUndoLast").onclick = ()=>{
+  if (!requireAdmin()) return;
   const L=currentLeague(); if(!L) return;
   if(!L.results.length){ alert("No results to undo."); return; }
   undoResultAt(L.results.length - 1);
@@ -885,9 +922,10 @@ function renderResultsLog(){
 }
 
 /* ============================================================
-   AD-HOC ENTRIES
+   AD-HOC ENTRIES (with admin guard)
 ============================================================ */
 document.getElementById("btnAddPoolResult").onclick = ()=>{
+  if (!requireAdmin()) return;
   const L=currentLeague(); if(!L||L.sport!=="Pool") return;
   const w=document.getElementById("poolWinner").value;
   const l=document.getElementById("poolLoser").value; if(w===l) return alert("Winner and loser cannot match.");
@@ -896,6 +934,7 @@ document.getElementById("btnAddPoolResult").onclick = ()=>{
   saveAll(); renderAll();
 };
 document.getElementById("btnAddFifaResult").onclick = ()=>{
+  if (!requireAdmin()) return;
   const L=currentLeague(); if(!L||L.sport!=="FIFA") return;
   const A=document.getElementById("fifaA").value, B=document.getElementById("fifaB").value; if(A===B) return alert("Players must differ.");
   const ta=document.getElementById("fifaTeamA").value||"—", tb=document.getElementById("fifaTeamB").value||"—";
@@ -906,9 +945,10 @@ document.getElementById("btnAddFifaResult").onclick = ()=>{
 };
 
 /* ============================================================
-   FIXTURE GENERATORS
+   FIXTURE GENERATORS (with admin guard)
 ============================================================ */
 document.getElementById("btnGeneratePool").onclick = ()=>{
+  if (!requireAdmin()) return;
   const L=currentLeague(); if(!L||L.sport!=="Pool") return;
   if(L.players.length<8) return alert("Minimum 8 players required.");
   if(L.players.length>32) return alert("Maximum 32 players.");
@@ -918,12 +958,14 @@ document.getElementById("btnGeneratePool").onclick = ()=>{
   L.results=[]; saveAll(); renderAll();
 };
 document.getElementById("btnClearPool").onclick = ()=>{
+  if (!requireAdmin()) return;
   const L=currentLeague(); if(!L||L.sport!=="Pool") return;
   if(!confirm("Clear Pool fixtures/results?")) return;
   L.fixtures=[]; L.results=[]; saveAll(); renderAll();
 };
 
 document.getElementById("btnGenerateTT").onclick = ()=>{
+  if (!requireAdmin()) return;
   const L=currentLeague(); if(!L||L.sport!=="TableTennis") return;
   if(L.players.length<8) return alert("Minimum 8 players required.");
   if(L.players.length>32) return alert("Maximum 32 players.");
@@ -933,12 +975,14 @@ document.getElementById("btnGenerateTT").onclick = ()=>{
   L.results=[]; saveAll(); renderAll();
 };
 document.getElementById("btnClearTT").onclick = ()=>{
+  if (!requireAdmin()) return;
   const L=currentLeague(); if(!L||L.sport!=="TableTennis") return;
   if(!confirm("Clear TT fixtures/results?")) return;
   L.fixtures=[]; L.results=[]; saveAll(); renderAll();
 };
 
 document.getElementById("btnGenerateFifa").onclick = ()=>{
+  if (!requireAdmin()) return;
   const L=currentLeague(); if(!L||L.sport!=="FIFA") return;
   if(L.players.length<8) return alert("Minimum 8 players required.");
   if(L.players.length>32) return alert("Maximum 32 players.");
@@ -948,15 +992,17 @@ document.getElementById("btnGenerateFifa").onclick = ()=>{
   L.results=[]; saveAll(); renderAll();
 };
 document.getElementById("btnClearFifa").onclick = ()=>{
+  if (!requireAdmin()) return;
   const L=currentLeague(); if(!L||L.sport!=="FIFA") return;
   if(!confirm("Clear FIFA fixtures/results?")) return;
   L.fixtures=[]; L.results=[]; saveAll(); renderAll();
 };
 
 /* ============================================================
-   EXPORTS
+   EXPORTS (guarded)
 ============================================================ */
 document.getElementById("btnExportCSV").onclick = ()=>{
+  if (!requireAdmin()) return;
   const L=currentLeague(); if(!L) return;
   recomputeStandings(L);
   const rows=Object.entries(L.standings).sort((a,b)=>b[1].Pts - a[1].Pts)
@@ -966,6 +1012,7 @@ document.getElementById("btnExportCSV").onclick = ()=>{
   const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=`${L.name.replace(/\s+/g,"_")}_standings.csv`; a.click();
 };
 document.getElementById("btnExportPrint").onclick = ()=>{
+  if (!requireAdmin()) return;
   const L=currentLeague(); if(!L) return; recomputeStandings(L);
   const w=window.open("","_blank");
   const head=`<tr><th>Pos</th><th>Player</th><th>P</th><th>W</th>${L.sport==='FIFA'?'<th>D</th>':''}<th>L</th>${L.sport==='Pool'?'':'<th>GF</th><th>GA</th><th>GD</th>'}<th>Pts</th></tr>`;
@@ -990,10 +1037,12 @@ document.getElementById("btnExportPrint").onclick = ()=>{
   w.document.close();
 };
 document.getElementById("btnExportJSON").onclick = ()=>{
+  if (!requireAdmin()) return;
   const blob=new Blob([JSON.stringify(app,null,2)],{type:"application/json"});
   const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="league_backup.json"; a.click();
 };
 document.getElementById("fileImportJSON").onchange = (e)=>{
+  if (!requireAdmin()) { e.target.value=""; return; }
   const f=e.target.files[0]; if(!f) return;
   const r=new FileReader(); r.onload=()=>{
     try{ const d=JSON.parse(r.result); if(!d.leagues) throw ""; app=d; Object.values(app.leagues).forEach(L=>{if(!L.pending)L.pending=[];}); saveAll(); renderAll(); alert("Import successful."); }
@@ -1172,7 +1221,7 @@ function updatePublicJoinVisibility(){
 })();
 
 /* ============================================================
-   LOAD / CREATE (robust binding so Create always works)
+   LOAD / CREATE (Create guarded)
 ============================================================ */
 document.getElementById("btnLoad").onclick = ()=>{
   const sel = document.getElementById("leagueSelect");
@@ -1186,6 +1235,7 @@ document.getElementById("btnLoad").onclick = ()=>{
   if (!btn._lmBound){
     btn._lmBound = true;
     btn.onclick = ()=>{
+      if (!requireAdmin()) return;
       const name=document.getElementById("newLeagueName").value.trim();
       const sport=document.getElementById("newLeagueSport").value;
       if(!name){ alert("Enter a league name."); return; }
@@ -1216,7 +1266,6 @@ function renderAll(){
   renderLeagueSelect(); renderSummary(); renderPlayers(); renderPendingApprovals();
   renderPoolFixtures(); renderTTFixtures(); renderFifaFixtures();
   renderStandings(); renderResultsLog(); applyPlayerView();
-  // (applyPlayerView also calls updatePublicJoinVisibility)
 }
 renderAll(); checkJoinDeepLink();
 
