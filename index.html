@@ -2,798 +2,287 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Coulsdon League Manager</title>
-styles.css
+
+<style>
+body{font-family:Segoe UI,sans-serif;background:#f5f5f5;margin:0;padding:16px}
+h1{color:#cc1e2c;margin-bottom:10px}
+.card{background:#fff;border:1px solid #ddd;border-radius:10px;padding:12px;margin-bottom:14px}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+button{border:none;border-radius:6px;padding:6px 10px;font-weight:600;cursor:pointer}
+.btn{background:#cc1e2c;color:#fff}
+.btn-ghost{background:#fff;border:1px solid #cc1e2c;color:#cc1e2c}
+.btn-admin{background:#990f19;color:#fff}
+.hidden{display:none!important}
+table{width:100%;border-collapse:collapse}
+th{background:#cc1e2c;color:#fff}
+th,td{padding:6px;border-bottom:1px solid #ddd;text-align:center}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:999}
+.modal{background:#fff;padding:16px;border-radius:10px;width:90%;max-width:420px}
+.close{float:right;cursor:pointer;color:#990f19;font-weight:700}
+.adminOnly.hidden{display:none!important}
+.adminBanner{color:#990f19;font-weight:bold;margin-top:6px}
+</style>
 </head>
 
 <body>
 
 <h1>Coulsdon League Manager</h1>
 
-<!-- ADMIN PANEL -->
+<!-- ADMIN -->
 <div class="card">
-  <button id="adminModeBtn" class="btn-admin">Enter Admin Mode</button>
-  <div id="adminBanner" class="hidden admin-banner">ADMIN MODE ACTIVE</div>
+  <button id="adminBtn" class="btn-admin">Enter Admin Mode</button>
+  <div id="adminBanner" class="adminBanner hidden">ADMIN MODE ACTIVE</div>
 </div>
 
-<!-- JOIN PANEL -->
-<div id="joinPanel" class="card hidden">
-  <h2>Join This League</h2>
-  <div id="portalPicker" class="hidden">
-    <select id="joinLeagueSelect"></select>
+<!-- CREATE / SELECT -->
+<div class="card">
+  <select id="leagueSelect"></select>
+  <div class="row adminOnly hidden" style="margin-top:8px">
+    <input id="leagueName" placeholder="League name">
+    <select id="leagueSport">
+      <option value="Pool">Pool</option>
+      <option value="TableTennis">Table Tennis</option>
+      <option value="FIFA">FIFA</option>
+    </select>
+    <button id="createLeague" class="btn">Create</button>
   </div>
-  <p class="muted" id="joinLeagueName">—</p>
+</div>
+
+<!-- JOIN -->
+<div class="card">
+  <h3>Join this league</h3>
   <div class="row">
-    <input id="joinPlayer" placeholder="Your name" />
-    <button id="joinSubmit" class="btn">Request to Join</button>
+    <input id="joinName" placeholder="Your name">
+    <button id="joinBtn" class="btn">Request</button>
   </div>
-  <div id="joinMsg" class="muted"></div>
-</div>
-
-<!-- TOOLBAR -->
-<div class="card">
-  <select id="leagueSelect" style="width:100%;"></select>
-
-  <div class="row adminOnly hidden" style="margin-top:10px;">
-    <button id="exportCSV" class="btn-ghost">CSV</button>
-    <button id="exportPrint" class="btn">Print</button>
-    <button id="backupJSON" class="btn-ghost">Backup</button>
-    <label class="btn-ghost">
-      Import <input type="file" id="importJSON" class="hidden">
-    </label>
-  </div>
-
-  <div class="row" style="margin-top:10px;">
-    <button id="leagueQR" class="btn-ghost">League QR</button>
-    <button id="portalQR" class="btn-ghost">Portal QR</button>
-  </div>
-</div>
-
-<!-- SUMMARY -->
-<div class="card" id="summary">
-  <strong id="sumName">No league selected</strong>
-  <span id="sumSport" class="muted"></span>
-  <div id="sumMeta" class="muted"></div>
+  <div id="joinMsg"></div>
 </div>
 
 <!-- PLAYERS -->
 <div class="card">
-  <h2>Players</h2>
+  <h3>Players</h3>
+  <ul id="players"></ul>
 
-  <div class="row adminOnly hidden">
-    <input id="playerName" placeholder="Add player" />
-    <button id="addPlayer" class="btn">Add</button>
-  </div>
-
-  <ul id="playerList"></ul>
-
-  <!-- Mini Join -->
-  <div id="miniJoin" class="">
-    <h3 class="muted">Join this league</h3>
-    <div class="row">
-      <input id="miniJoinName" placeholder="Your name" />
-      <button id="miniJoinSubmit" class="btn">Request</button>
-    </div>
-    <div id="miniJoinMsg" class="muted"></div>
-  </div>
-
-  <!-- Pending Joins -->
-  <div id="pendingPlayers" class="adminOnly hidden">
-    <h3>Pending Player Requests</h3>
+  <div id="pendingPlayersWrap" class="adminOnly hidden">
+    <h4>Pending Requests</h4>
     <table id="pendingPlayersTable">
-      <thead>
-        <tr><th>Name</th><th>Time</th><th>Action</th></tr>
-      </thead>
+      <thead><tr><th>Name</th><th>Action</th></tr></thead>
       <tbody></tbody>
     </table>
-    <button id="approveAllPlayers" class="btn" style="margin-top:10px;">Approve All</button>
   </div>
 </div>
 
 <!-- FIXTURES -->
 <div class="card">
-  <h2>Fixtures</h2>
-
-  <div id="sportControls" class="adminOnly hidden row">
-    <select id="roundMode">
-      <option value="single">Once</option>
-      <option value="double">Twice</option>
-    </select>
-    <button id="generateFixtures" class="btn">Generate</button>
-    <button id="clearFixtures" class="btn-ghost">Clear</button>
+  <h3>Fixtures</h3>
+  <div class="row adminOnly hidden">
+    <button id="genFix" class="btn">Generate</button>
+    <button id="clrFix" class="btn-ghost">Clear</button>
   </div>
-
   <table id="fixturesTable">
-    <thead>
-      <tr><th>Round</th><th>A</th><th>B</th><th>Action</th></tr>
-    </thead>
+    <thead><tr><th>Rnd</th><th>A</th><th>B</th><th>Submit</th></tr></thead>
     <tbody></tbody>
   </table>
 </div>
 
-<!-- STANDINGS -->
+<!-- TABLE -->
 <div class="card">
-  <h2>League Table</h2>
-  <table id="standingsTable">
+  <h3>League Table</h3>
+  <table>
     <thead>
       <tr><th>Pos</th><th>Player</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GF</th><th>GA</th><th>GD</th><th>Pts</th></tr>
     </thead>
-    <tbody></tbody>
+    <tbody id="tableBody"></tbody>
   </table>
 </div>
 
 <!-- RESULTS -->
 <div class="card">
-  <h2>Results</h2>
+  <h3>Results</h3>
 
-  <div id="pendingResults" class="adminOnly hidden">
-    <h3>Pending Results</h3>
-    <table id="pendingResultsTable">
-      <thead>
-        <tr><th>Fixture</th><th>Details</th><th>Submitted By</th><th>Action</th></tr>
-      </thead>
+  <div id="pendingResultsWrap" class="adminOnly hidden">
+    <h4>Pending Results</h4>
+    <table id="pendingResults">
+      <thead><tr><th>Match</th><th>By</th><th>Action</th></tr></thead>
       <tbody></tbody>
     </table>
   </div>
 
-  <table id="resultsTable" style="margin-top:10px;">
-    <thead>
-      <tr><th>#</th><th>Details</th><th>Points</th><th>Date</th><th class="adminOnlyHeader">Undo</th></tr>
-    </thead>
-    <tbody></tbody>
+  <table>
+    <thead><tr><th>#</th><th>Details</th></tr></thead>
+    <tbody id="resultsLog"></tbody>
   </table>
 </div>
 
 <!-- MODAL -->
 <div id="modalBG" class="modal-bg hidden">
-  <div id="modalBox" class="modal">
-    <span id="modalClose" class="close-modal">X</span>
+  <div class="modal">
+    <span class="close" onclick="closeModal()">X</span>
     <h3 id="modalTitle"></h3>
     <div id="modalBody"></div>
-    <button id="modalSubmit" class="btn" style="width:100%;margin-top:10px;">Submit</button>
+    <button class="btn" style="width:100%" onclick="submitResult()">Submit</button>
   </div>
 </div>
 
-<script src="logic-core.jsic-admin.js</script>
-<script src="logic/script>
-logic-standings.js</script>
-<script src="logic-modallogic-portal.js</script>
+<script>
+/* ===== STATE ===== */
+const LS="CLM_FINAL";
+let app=JSON.parse(localStorage.getItem(LS)||"{}");
+if(!app.leagues) app={leagues:{},current:null};
+let admin=false;
+let activeFixture=null;
+
+/* ===== UTIL ===== */
+const $=id=>document.getElementById(id);
+const save=()=>localStorage.setItem(LS,JSON.stringify(app));
+const cur=()=>app.leagues[app.current];
+const sanitize=s=>(s||"").trim();
+
+/* ===== ADMIN ===== */
+$("adminBtn").onclick=()=>{
+  if(!admin){
+    if(prompt("Password")!=="StaffOnly-4429")return;
+    admin=true;
+  }else admin=false;
+  $("adminBanner").classList.toggle("hidden",!admin);
+  document.querySelectorAll(".adminOnly").forEach(e=>e.classList.toggle("hidden",!admin));
+};
+
+/* ===== LEAGUES ===== */
+function renderLeagues(){
+  const s=$("leagueSelect");
+  s.innerHTML="";
+  Object.values(app.leagues).forEach(l=>{
+    let o=document.createElement("option");
+    o.value=l.id;o.textContent=l.name+" ("+l.sport+")";
+    s.appendChild(o);
+  });
+  s.value=app.current||"";
+}
+$("createLeague").onclick=()=>{
+  const name=sanitize($("leagueName").value);
+  if(!name)return;
+  const id="L"+Math.random().toString(36).slice(2,7);
+  app.leagues[id]={id,name,sport:$("leagueSport").value,players:[],pending:[],fixtures:[],results:[],pendingResults:[]};
+  app.current=id;
+  save(); render();
+};
+$("leagueSelect").onchange=e=>{app.current=e.target.value; render();};
+
+/* ===== JOIN ===== */
+$("joinBtn").onclick=()=>{
+  const L=cur(); if(!L)return;
+  const n=sanitize($("joinName").value);
+  if(!n)return;
+  if(L.players.includes(n)||L.pending.includes(n))return;
+  L.pending.push(n);
+  save(); render();
+};
+
+/* ===== FIXTURES ===== */
+function genFixtures(){
+  const L=cur(); if(!L||L.players.length<2)return;
+  const p=[...L.players];
+  if(p.length%2)p.push(null);
+  let rounds=[];
+  for(let r=0;r<p.length-1;r++){
+    for(let i=0;i<p.length/2;i++){
+      let a=p[i],b=p[p.length-1-i];
+      if(a&&b)rounds.push({id:"F"+Math.random(),round:r+1,A:a,B:b});
+    }
+    p.splice(1,0,p.pop());
+  }
+  L.fixtures=rounds;
+  L.results=[];
+  save(); render();
+}
+$("genFix").onclick=genFixtures;
+$("clrFix").onclick=()=>{cur().fixtures=[]; save(); render();};
+
+/* ===== MODAL ===== */
+function openModal(f){
+  activeFixture=f;
+  $("modalTitle").textContent=`${f.A} vs ${f.B}`;
+  let html=`<label>You are:</label><select id="who">`;
+  cur().players.forEach(p=>html+=`<option>${p}</option>`);
+  html+=`</select><br><br>`;
+  if(cur().sport==="Pool"){
+    html+=`Winner<select id="w"><option>${f.A}</option><option>${f.B}</option></select>`;
+  }else{
+    html+=`${f.A}<input id="a" type="number"><br>${f.B}<input id="b" type="number">`;
+  }
+  $("modalBody").innerHTML=html;
+  $("modalBG").classList.remove("hidden");
+}
+function closeModal(){$("modalBG").classList.add("hidden")}
+
+/* ===== RESULT SUBMIT ===== */
+function submitResult(){
+  const L=cur(),f=activeFixture;
+  let d={};
+  if(L.sport==="Pool"){
+    const w=$("w").value,l=w===f.A?f.B:f.A;
+    d={winner:w,loser:l,mode:"normal"};
+  }else{
+    const a=+$("a").value,b=+$("b").value;
+    if(isNaN(a)||isNaN(b))return;
+    d=L.sport==="TableTennis"?{home:f.A,away:f.B,homePts:a,awayPts:b}:{A:f.A,B:f.B,goalsA:a,goalsB:b};
+  }
+  L.pendingResults.push({f,d,by:$("who").value});
+  save(); render(); closeModal();
+}
+
+/* ===== APPROVE RESULT ===== */
+function approveResult(i){
+  const L=cur();
+  const r=L.pendingResults[i];
+  L.results.push(r);
+  L.fixtures=L.fixtures.filter(x=>x!==r.f);
+  L.pendingResults.splice(i,1);
+  save(); render();
+}
+
+/* ===== RENDER ===== */
+function render(){
+  renderLeagues();
+  const L=cur();
+  $("players").innerHTML=L?L.players.map(p=>`<li>${p}</li>`).join(""):"";
+  const pT=$("pendingPlayersTable").querySelector("tbody");
+  pT.innerHTML="";
+  if(L) L.pending.forEach(p=>{
+    let tr=pT.insertRow();
+    tr.innerHTML=`<td>${p}</td><td>
+      <button class="btn" onclick="cur().players.push('${p}');cur().pending=cur().pending.filter(x=>x!=='${p}');save();render()">Approve</button>
+    </td>`;
+  });
+
+  const fT=$("fixturesTable").querySelector("tbody");
+  fT.innerHTML="";
+  if(L) L.fixtures.forEach(f=>{
+    let tr=fT.insertRow();
+    tr.innerHTML=`<td>${f.round}</td><td>${f.A}</td><td>${f.B}</td>
+      <td><button class="btn" onclick='openModal(${JSON.stringify(f)})'>Submit</button></td>`;
+  });
+
+  const prT=$("pendingResults").querySelector("tbody");
+  prT.innerHTML="";
+  if(L) L.pendingResults.forEach((r,i)=>{
+    let tr=prT.insertRow();
+    tr.innerHTML=`<td>${r.f.A} vs ${r.f.B}</td><td>${r.by}</td>
+      <td><button class="btn" onclick="approveResult(${i})">Approve</button></td>`;
+  });
+
+  const log=$("resultsLog");
+  log.innerHTML="";
+  if(L) L.results.forEach((r,i)=>{
+    log.innerHTML+=`<tr><td>${i+1}</td><td>${JSON.stringify(r.d)}</td></tr>`;
+  });
+}
+render();
+</script>
 
 </body>
 </html>
-
-body {
-  background: #f5f5f5;
-  font-family: Segoe UI, sans-serif;
-  margin: 0;
-  padding: 20px;
-}
-
-h1 {
-  color: #cc1e2c;
-  margin-bottom: 15px;
-}
-
-.card {
-  background: #fff;
-  border: 1px solid #ddd;
-  padding: 15px;
-  border-radius: 10px;
-  box-shadow: 0 2px 5px rgba(0,0,0,.05);
-  margin-bottom: 20px;
-}
-
-.row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.btn {
-  background: #cc1e2c;
-  color: #fff;
-  padding: 8px 12px;
-  border-radius: 6px;
-  cursor: pointer;
-  border: none;
-}
-
-.btn-ghost {
-  background: #fff;
-  border: 1px solid #cc1e2c;
-  color: #cc1e2c;
-}
-
-.btn-admin {
-  background: #990f19;
-  color: #fff;
-}
-
-.hidden { display: none !important; }
-
-.admin-banner {
-  font-weight: bold;
-  margin-top: 10px;
-  color: #990f19;
-}
-
-.modal-bg {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,.6);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 999;
-}
-
-.modal {
-  background: #fff;
-  padding: 20px;
-  border-radius: 10px;
-  width: 90%;
-  max-width: 420px;
-  position: relative;
-}
-
-.close-modal {
-  position: absolute;
-  top: 10px;
-  right: 12px;
-  cursor: pointer;
-  color: #990f19;
-  font-weight: bold;
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-  background: #fff;
-}
-
-table th {
-  background: #cc1e2c;
-  color: #fff;
-}
-
-th, td {
-  padding: 8px;
-  border-bottom: 1px solid #ddd;
-  text-align: center;
-}
-
-/* CORE: storage, helpers, state */
-
-let ADMIN_PASSWORD = "StaffOnly-4429";
-let adminMode = false;
-
-let app = {
-  leagues: {},
-  current: null
-};
-
-function saveAll() {
-  localStorage.setItem("CLM_APP", JSON.stringify(app));
-}
-
-function loadAll() {
-  const raw = localStorage.getItem("CLM_APP");
-  if (raw) {
-    app = JSON.parse(raw);
-    if (!app.leagues) app.leagues = {};
-  }
-}
-loadAll();
-
-function currentLeague() {
-  return app.leagues[app.current] || null;
-}
-
-function newID() {
-  return "L" + Math.random().toString(36).substr(2, 8);
-}
-
-function sanitize(n) {
-  return (n || "").replace(/\s+/g, " ").trim();
-}
-
-/* Rendering dispatcher */
-
-function renderAll() {
-  renderLeagueSelect();
-  renderSummary();
-  renderPlayers();
-  renderPendingPlayers();
-  renderFixtures();
-  renderPendingResults();
-  renderStandings();
-  renderResults();
-  applyAdminView();
-}
-
-/* ADMIN MODE + adminOnly guards */
-
-document.getElementById("adminModeBtn").onclick = () => {
-  if (!adminMode) {
-    const pw = prompt("Enter admin password:");
-    if (pw === ADMIN_PASSWORD) adminMode = true;
-    else return alert("Incorrect.");
-  } else {
-    adminMode = false;
-  }
-  renderAll();
-};
-
-function applyAdminView() {
-  const isAdmin = adminMode;
-  document.body.classList.toggle("admin", isAdmin);
-
-  document.querySelectorAll(".adminOnly").forEach(e => {
-    e.classList.toggle("hidden", !isAdmin);
-  });
-}
-
-/* Approve / Reject player join requests */
-
-function approvePlayer(name) {
-  const L = currentLeague();
-  if (!L) return;
-  name = sanitize(name);
-
-  if (!L.players.includes(name)) L.players.push(name);
-  L.pending = L.pending.filter(p => p.name !== name);
-  L.fixtures = [];
-  L.results = [];
-  saveAll();
-  renderAll();
-}
-
-function rejectPlayer(name) {
-  const L = currentLeague();
-  if (!L) return;
-  L.pending = L.pending.filter(p => p.name !== sanitize(name));
-  saveAll();
-  renderAll();
-}
-
-document.getElementById("approveAllPlayers").onclick = () => {
-  const L = currentLeague();
-  if (!L) return;
-  L.pending.forEach(p => {
-    if (!L.players.includes(p.name)) L.players.push(p.name);
-  });
-  L.pending = [];
-  L.fixtures = [];
-  L.results = [];
-  saveAll();
-  renderAll();
-};
-
-/* FIXTURE GENERATION + STUDENT SUBMISSION TRIGGER */
-
-function generateRR(players, double) {
-  const arr = [...players];
-  if (arr.length % 2 === 1) arr.push(null);
-  const rounds = [];
-  const n = arr.length;
-  for (let r = 0; r < n - 1; r++) {
-    const group = [];
-    for (let i = 0; i < n / 2; i++) {
-      const A = arr[i], B = arr[n - 1 - i];
-      if (A && B) group.push({ A, B, round: r + 1 });
-    }
-    rounds.push(...group);
-    const tmp = arr.splice(1, n - 2);
-    tmp.unshift(tmp.pop());
-    arr.splice(1, n - 2, ...tmp);
-  }
-  if (double) {
-    return [
-      ...rounds,
-      ...rounds.map(f => ({ A: f.B, B: f.A, round: f.round + (n - 1) }))
-    ];
-  }
-  return rounds;
-}
-
-document.getElementById("generateFixtures").onclick = () => {
-  const L = currentLeague();
-  if (!L) return;
-
-  if (L.players.length < 2) return alert("Need >= 2 players.");
-
-  const double = document.getElementById("roundMode").value === "double";
-  const base = generateRR(L.players, double);
-
-  const fixes = base.map((f, i) => ({
-    id: "FX" + (i+1),
-    A: f.A,
-    B: f.B,
-    round: f.round,
-    sport: L.sport
-  }));
-  L.fixtures = fixes;
-  L.results = [];
-  saveAll();
-  renderAll();
-};
-
-document.getElementById("clearFixtures").onclick = () => {
-  const L = currentLeague();
-  if (!L) return;
-  L.fixtures = [];
-  L.results = [];
-  saveAll();
-  renderAll();
-};
-
-function renderFixtures() {
-  const L = currentLeague();
-  const tbody = document.querySelector("#fixturesTable tbody");
-  tbody.innerHTML = "";
-  if (!L) return;
-
-  L.fixtures.forEach(f => {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${f.round}</td>
-      <td>${f.A}</td>
-      <td>${f.B}</td>
-      <td><button class="btn" onclick="openFixtureModal('${f.id}')">Submit</button></td>
-    `;
-    tbody.appendChild(tr);
-  });
-}
-
-/* STANDINGS + RESULTS RENDERING */
-
-function recompute(L) {
-  const s = {};
-  L.players.forEach(p => s[p] = { P:0,W:0,D:0,L:0,GF:0,GA:0,GD:0,Pts:0 });
-
-  L.results.forEach(r => {
-    const d = r.details;
-    if (r.sport === "Pool") {
-      s[d.winner].P++; s[d.loser].P++;
-      s[d.winner].W++; s[d.loser].L++;
-      if (d.mode === "normal") s[d.winner].Pts += 3;
-      else { s[d.winner].Pts += 2; s[d.loser].Pts += 1; }
-    }
-
-    if (r.sport === "TableTennis") {
-      s[d.home].P++; s[d.away].P++;
-      s[d.home].GF += d.homePts;
-      s[d.home].GA += d.awayPts;
-      s[d.away].GF += d.awayPts;
-      s[d.away].GA += d.homePts;
-      if (d.homePts > d.awayPts) { s[d.home].W++; s[d.away].L++; s[d.home].Pts += 3; }
-      else { s[d.away].W++; s[d.home].L++; s[d.away].Pts += 3; }
-    }
-
-    if (r.sport === "FIFA") {
-      s[d.A].P++; s[d.B].P++;
-      s[d.A].GF += d.goalsA;
-      s[d.A].GA += d.goalsB;
-      s[d.B].GF += d.goalsB;
-      s[d.B].GA += d.goalsA;
-      if (d.goalsA > d.goalsB) { s[d.A].W++; s[d.B].L++; s[d.A].Pts += 3; }
-      else if (d.goalsB > d.goalsA) { s[d.B].W++; s[d.A].L++; s[d.B].Pts += 3; }
-      else { s[d.A].D++; s[d.B].D++; s[d.A].Pts++; s[d.B].Pts++; }
-    }
-  });
-
-  Object.values(s).forEach(x => x.GD = x.GF - x.GA);
-  return s;
-}
-
-function renderStandings() {
-  const L = currentLeague();
-  const tbody = document.querySelector("#standingsTable tbody");
-  tbody.innerHTML = "";
-  if (!L) return;
-
-  const s = recompute(L);
-  const rows = Object.entries(s).sort(
-    (a,b)=>b[1].Pts - a[1].Pts || b[1].GD - a[1].GD
-  );
-
-  rows.forEach(([p,v],i)=>{
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${i+1}</td>
-      <td>${p}</td>
-      <td>${v.P}</td>
-      <td>${v.W}</td>
-      <td>${v.D}</td>
-      <td>${v.L}</td>
-      <td>${v.GF}</td>
-      <td>${v.GA}</td>
-      <td>${v.GD}</td>
-      <td>${v.Pts}</td>
-    `;
-    tbody.appendChild(tr);
-  });
-}
-
-function renderResults() {
-  const L = currentLeague();
-  const tbody = document.querySelector("#resultsTable tbody");
-  tbody.innerHTML = "";
-  if (!L) return;
-
-  L.results.forEach((r,i)=>{
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${i+1}</td>
-      <td>${resultText(r)}</td>
-      <td>${pointsText(r)}</td>
-      <td>${r.date}</td>
-      <td class="adminOnlyHeader">
-        <button class="btn-ghost adminOnly hidden" onclick="undoResult(${i})">Undo</button>
-      </td>
-    `;
-    tbody.appendChild(tr);
-  });
-}
-
-function resultText(r) {
-  const d = r.details;
-  if (r.sport === "Pool") return `${d.winner} beat ${d.loser} (${d.mode})`;
-  if (r.sport === "TableTennis") return `${d.home} ${d.homePts}–${d.awayPts} ${d.away}`;
-  return `${d.A} (${d.teamA}) ${d.goalsA}–${d.goalsB} ${d.B} (${d.teamB})`;
-}
-
-function pointsText(r) {
-  const d = r.details;
-  if (r.sport==="Pool")
-    return d.mode==="normal"?`${d.winner}+3`:`${d.winner}+2, ${d.loser}+1`;
-  if (r.sport==="TableTennis")
-    return d.homePts>d.awayPts?`${d.home}+3`:`${d.away}+3`;
-  if (r.sport==="FIFA")
-    return d.goalsA>d.goalsB?`${d.A}+3`:
-           d.goalsB>d.goalsA?`${d.B}+3`:`${d.A}+1, ${d.B}+1`;
-}
-
-function undoResult(i) {
-  const L=currentLeague();
-  if (!L) return;
-  L.results.splice(i,1);
-  saveAll();
-  renderAll();
-}
-
-/* STANDINGS + RESULTS RENDERING */
-
-function recompute(L) {
-  const s = {};
-  L.players.forEach(p => s[p] = { P:0,W:0,D:0,L:0,GF:0,GA:0,GD:0,Pts:0 });
-
-  L.results.forEach(r => {
-    const d = r.details;
-    if (r.sport === "Pool") {
-      s[d.winner].P++; s[d.loser].P++;
-      s[d.winner].W++; s[d.loser].L++;
-      if (d.mode === "normal") s[d.winner].Pts += 3;
-      else { s[d.winner].Pts += 2; s[d.loser].Pts += 1; }
-    }
-
-    if (r.sport === "TableTennis") {
-      s[d.home].P++; s[d.away].P++;
-      s[d.home].GF += d.homePts;
-      s[d.home].GA += d.awayPts;
-      s[d.away].GF += d.awayPts;
-      s[d.away].GA += d.homePts;
-      if (d.homePts > d.awayPts) { s[d.home].W++; s[d.away].L++; s[d.home].Pts += 3; }
-      else { s[d.away].W++; s[d.home].L++; s[d.away].Pts += 3; }
-    }
-
-    if (r.sport === "FIFA") {
-      s[d.A].P++; s[d.B].P++;
-      s[d.A].GF += d.goalsA;
-      s[d.A].GA += d.goalsB;
-      s[d.B].GF += d.goalsB;
-      s[d.B].GA += d.goalsA;
-      if (d.goalsA > d.goalsB) { s[d.A].W++; s[d.B].L++; s[d.A].Pts += 3; }
-      else if (d.goalsB > d.goalsA) { s[d.B].W++; s[d.A].L++; s[d.B].Pts += 3; }
-      else { s[d.A].D++; s[d.B].D++; s[d.A].Pts++; s[d.B].Pts++; }
-    }
-  });
-
-  Object.values(s).forEach(x => x.GD = x.GF - x.GA);
-  return s;
-}
-
-function renderStandings() {
-  const L = currentLeague();
-  const tbody = document.querySelector("#standingsTable tbody");
-  tbody.innerHTML = "";
-  if (!L) return;
-
-  const s = recompute(L);
-  const rows = Object.entries(s).sort(
-    (a,b)=>b[1].Pts - a[1].Pts || b[1].GD - a[1].GD
-  );
-
-  rows.forEach(([p,v],i)=>{
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${i+1}</td>
-      <td>${p}</td>
-      <td>${v.P}</td>
-      <td>${v.W}</td>
-      <td>${v.D}</td>
-      <td>${v.L}</td>
-      <td>${v.GF}</td>
-      <td>${v.GA}</td>
-      <td>${v.GD}</td>
-      <td>${v.Pts}</td>
-    `;
-    tbody.appendChild(tr);
-  });
-}
-
-function renderResults() {
-  const L = currentLeague();
-  const tbody = document.querySelector("#resultsTable tbody");
-  tbody.innerHTML = "";
-  if (!L) return;
-
-  L.results.forEach((r,i)=>{
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${i+1}</td>
-      <td>${resultText(r)}</td>
-      <td>${pointsText(r)}</td>
-      <td>${r.date}</td>
-      <td class="adminOnlyHeader">
-        <button class="btn-ghost adminOnly hidden" onclick="undoResult(${i})">Undo</button>
-      </td>
-    `;
-    tbody.appendChild(tr);
-  });
-}
-
-function resultText(r) {
-  const d = r.details;
-  if (r.sport === "Pool") return `${d.winner} beat ${d.loser} (${d.mode})`;
-  if (r.sport === "TableTennis") return `${d.home} ${d.homePts}–${d.awayPts} ${d.away}`;
-  return `${d.A} (${d.teamA}) ${d.goalsA}–${d.goalsB} ${d.B} (${d.teamB})`;
-}
-
-function pointsText(r) {
-  const d = r.details;
-  if (r.sport==="Pool")
-    return d.mode==="normal"?`${d.winner}+3`:`${d.winner}+2, ${d.loser}+1`;
-  if (r.sport==="TableTennis")
-    return d.homePts>d.awayPts?`${d.home}+3`:`${d.away}+3`;
-  if (r.sport==="FIFA")
-    return d.goalsA>d.goalsB?`${d.A}+3`:
-           d.goalsB>d.goalsA?`${d.B}+3`:`${d.A}+1, ${d.B}+1`;
-}
-
-function undoResult(i) {
-  const L=currentLeague();
-  if (!L) return;
-  L.results.splice(i,1);
-  saveAll();
-  renderAll();
-}
-
-/* STANDINGS + RESULTS RENDERING */
-
-function recompute(L) {
-  const s = {};
-  L.players.forEach(p => s[p] = { P:0,W:0,D:0,L:0,GF:0,GA:0,GD:0,Pts:0 });
-
-  L.results.forEach(r => {
-    const d = r.details;
-    if (r.sport === "Pool") {
-      s[d.winner].P++; s[d.loser].P++;
-      s[d.winner].W++; s[d.loser].L++;
-      if (d.mode === "normal") s[d.winner].Pts += 3;
-      else { s[d.winner].Pts += 2; s[d.loser].Pts += 1; }
-    }
-
-    if (r.sport === "TableTennis") {
-      s[d.home].P++; s[d.away].P++;
-      s[d.home].GF += d.homePts;
-      s[d.home].GA += d.awayPts;
-      s[d.away].GF += d.awayPts;
-      s[d.away].GA += d.homePts;
-      if (d.homePts > d.awayPts) { s[d.home].W++; s[d.away].L++; s[d.home].Pts += 3; }
-      else { s[d.away].W++; s[d.home].L++; s[d.away].Pts += 3; }
-    }
-
-    if (r.sport === "FIFA") {
-      s[d.A].P++; s[d.B].P++;
-      s[d.A].GF += d.goalsA;
-      s[d.A].GA += d.goalsB;
-      s[d.B].GF += d.goalsB;
-      s[d.B].GA += d.goalsA;
-      if (d.goalsA > d.goalsB) { s[d.A].W++; s[d.B].L++; s[d.A].Pts += 3; }
-      else if (d.goalsB > d.goalsA) { s[d.B].W++; s[d.A].L++; s[d.B].Pts += 3; }
-      else { s[d.A].D++; s[d.B].D++; s[d.A].Pts++; s[d.B].Pts++; }
-    }
-  });
-
-  Object.values(s).forEach(x => x.GD = x.GF - x.GA);
-  return s;
-}
-
-function renderStandings() {
-  const L = currentLeague();
-  const tbody = document.querySelector("#standingsTable tbody");
-  tbody.innerHTML = "";
-  if (!L) return;
-
-  const s = recompute(L);
-  const rows = Object.entries(s).sort(
-    (a,b)=>b[1].Pts - a[1].Pts || b[1].GD - a[1].GD
-  );
-
-  rows.forEach(([p,v],i)=>{
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${i+1}</td>
-      <td>${p}</td>
-      <td>${v.P}</td>
-      <td>${v.W}</td>
-      <td>${v.D}</td>
-      <td>${v.L}</td>
-      <td>${v.GF}</td>
-      <td>${v.GA}</td>
-      <td>${v.GD}</td>
-      <td>${v.Pts}</td>
-    `;
-    tbody.appendChild(tr);
-  });
-}
-
-function renderResults() {
-  const L = currentLeague();
-  const tbody = document.querySelector("#resultsTable tbody");
-  tbody.innerHTML = "";
-  if (!L) return;
-
-  L.results.forEach((r,i)=>{
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${i+1}</td>
-      <td>${resultText(r)}</td>
-      <td>${pointsText(r)}</td>
-      <td>${r.date}</td>
-      <td class="adminOnlyHeader">
-        <button class="btn-ghost adminOnly hidden" onclick="undoResult(${i})">Undo</button>
-      </td>
-    `;
-    tbody.appendChild(tr);
-  });
-}
-
-function resultText(r) {
-  const d = r.details;
-  if (r.sport === "Pool") return `${d.winner} beat ${d.loser} (${d.mode})`;
-  if (r.sport === "TableTennis") return `${d.home} ${d.homePts}–${d.awayPts} ${d.away}`;
-  return `${d.A} (${d.teamA}) ${d.goalsA}–${d.goalsB} ${d.B} (${d.teamB})`;
-}
-
-function pointsText(r) {
-  const d = r.details;
-  if (r.sport==="Pool")
-    return d.mode==="normal"?`${d.winner}+3`:`${d.winner}+2, ${d.loser}+1`;
-  if (r.sport==="TableTennis")
-    return d.homePts>d.awayPts?`${d.home}+3`:`${d.away}+3`;
-  if (r.sport==="FIFA")
-    return d.goalsA>d.goalsB?`${d.A}+3`:
-           d.goalsB>d.goalsA?`${d.B}+3`:`${d.A}+1, ${d.B}+1`;
-}
-
-function undoResult(i) {
-  const L=currentLeague();
-  if (!L) return;
-  L.results.splice(i,1);
-  saveAll();
-  renderAll();
-}
